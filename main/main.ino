@@ -161,33 +161,33 @@ volatile uint8_t speedOutput = 0;
 volatile uint16_t current = 0;
 
 /*!
-  \brief Gate voltage measurement (Register Value)
+  \brief VBUS voltage measurement (Register Value)
 
-  The most recent gate voltage measurement is stored in this variable.
+  The most recent VBUS voltage measurement is stored in this variable.
 
   The range is 0-1023.
 
   This value is not scaled and represents the raw ADC register value. To obtain
-  the scaled gate voltage in volts, you can use the formula:
+  the scaled VBUS voltage in volts, you can use the formula:
 
-  \f[ \text{Voltage (V)} = \frac{\text{REGISTER_VALUE} \times 0.004887586 \times
-     (\text{GATE_RTOP} + \text{GATE_RBOTTOM})}{\text{GATE_RBOTTOM}} \f]
+  \f[ \text{Voltage (V)} = \frac{\text{REGISTER_VALUE} \times 0.004888 \times
+     (\text{VBUS_RTOP} + \text{VBUS_RBOTTOM})}{\text{VBUS_RBOTTOM}} \f]
 
   Where:
     - REGISTER_VALUE : The raw ADC register value stored in this variable.
-    - 0.004887586 : The conversion factor for a 10-bit ADC with a Vref of 5V.
-    - \ref GATE_RTOP : The top resistor value in ohms (Ω) in the potential
+    - 0.004888 : The conversion factor for a 10-bit ADC with a Vref of 5V.
+    - \ref VBUS_RTOP : The top resistor value in ohms (Ω) in the potential
       divider.
-    - \ref GATE_RBOTTOM : The bottom resistor value in ohms (Ω) in the potential
+    - \ref VBUS_RBOTTOM : The bottom resistor value in ohms (Ω) in the potential
       divider.
 
-  NEVB-3INV-001-01 has a resistor divider with RTOP of 1 MΩ and RBOTTOM of 71.5
-  kΩ, so it corresponds to approximately 0.0732 volts (V) per register value.
+  The NEVB-MTR1-C-1 has a resistor divider with RTOP of 100 kΩ and RBOTTOM of 6.2
+  kΩ, so it corresponds to approximately 0.0837 volts (V) per register value.
 
   \note It is not used for any significant purpose in this implementation, but
   the measurement is updated.
 */
-volatile uint16_t gateVref = 0;
+volatile uint16_t vbusVref = 0;
 
 /*!
    \brief Buffer for incoming serial data.
@@ -519,7 +519,7 @@ static void ADCInit(void)
   ADCSRB = ADC_MUX_H_BREF;
 
   // Enable pull up resistor
-  PORTF |= (1 << PF0); 
+  PORTF |= (1 << PF0);
 
   _delay_ms(1);
   SweepLEDsBlocking();
@@ -539,7 +539,7 @@ static void ADCInit(void)
   }
 
   // Disable pull up resistor
-  PORTF &= ~(1 << PF0); 
+  PORTF &= ~(1 << PF0);
 
   // Re-initialize ADC mux channel select.
   ADMUX &= ~ADC_MUX_L_BITS;
@@ -1329,8 +1329,8 @@ ISR(ADC_vect)
     break;
   case (ADC_MUX_H_GATEVREF | ADC_MUX_L_GATEVREF):
     // Handle ADC conversion result for gate voltage reference measurement.
-    gateVref = ADCL >> 6;
-    gateVref |= (ADCH << 2);
+    vbusVref = ADCL >> 6;
+    vbusVref |= (ADCH << 2);
     ADMUX &= ~ADC_MUX_L_BITS;
     ADMUX |= ADC_MUX_L_SPEED;
     ADCSRB &= ~ADC_MUX_H_BITS;

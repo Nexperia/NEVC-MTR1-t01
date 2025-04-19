@@ -29,7 +29,7 @@
 #include <stdint.h>
 
 /**
-   \addtogroup ConfigDefines Motor Configuration Definitions 
+   \addtogroup ConfigDefines Motor Configuration Definitions
 
    \brief Collection of definitions that control system behavior.
 
@@ -39,9 +39,9 @@
 */
 
 /*!
-   \defgroup UserSettable User Settable Defines 
+   \defgroup UserSettable User Settable Defines
 
-   \brief These defines can be modified by the user. 
+   \brief These defines can be modified by the user.
 
    \ingroup ConfigDefines
    @{
@@ -140,7 +140,7 @@
    \ref TRUE or \ref FALSE.
 
 */
-#define HALL_PULLUP_ENABLE FALSE
+#define HALL_PULLUP_ENABLE TRUE
 
 /*!
    \brief Emulate Motor Spinning
@@ -198,18 +198,21 @@
 
    \see TURN_OFF_MODE_BRAKE, TURN_OFF_MODE_COAST
 */
-#define TURN_OFF_MODE TURN_OFF_MODE_BRAKE
+#define TURN_OFF_MODE TURN_OFF_MODE_COAST
 
 /*!
-   \brief Current Gain for Current Measurement
+   \brief Hi-side Current (IBUS) Gain for Current Measurement
 
    This macro defines the gain factor used in the current measurement circuit.
    The gain is a unit-less multiplier that amplifies the signal from the current
    sensor before it is read by the controller. It is used in the calculation to
    convert the sensor reading into an actual current value.
 
-   The NEVB-3INV-001-01 comes with a current op-amp with a gain factor of 50.
-   This is the default value.
+   The NEVB-MTR1-I56-1 comes with two current op-amps with different gain factors:
+   1. Gain factor of 50 - This is the default value.
+   2. Gain factor of 20 - This is the alternative value.
+
+   \image html current_sense_select.png width=70%
 
    \note Ensure that the gain value is correct.
 
@@ -225,7 +228,7 @@
    with the current gain to calculate the actual current based on the voltage
    across the current sense resistor.
 
-   The NEVB-3INV-001-01 comes with a current sense resistor of value 2 mΩ. This
+   The NEVB-MTR1-I56-1 comes with a current sense resistor of value 4 mΩ. This
    is the default value.
 
    \note Ensure that the resistor value matches the actual hardware component
@@ -233,7 +236,7 @@
 
    \see CURRENT_GAIN
 */
-#define CURRENT_SENSE_RESISTOR 2000
+#define CURRENT_SENSE_RESISTOR 4000
 
 /*!
    \brief Current Warning Threshold (Register Value)
@@ -248,27 +251,27 @@
    register value from the current in amperes, you can use the formula:
 
    \f[ \text{Register Value} = \frac{\text{CURRENT} \times
-      \text{CURRENT_SENSE_RESISTOR} \times \text{CURRENT_GAIN}}{0.004887586
+      \text{CURRENT_SENSE_RESISTOR} \times \text{CURRENT_GAIN}}{0.004888
       \times 1000000} \f]
 
    Where:
      - CURRENT : The current threshold in amperes.
-     - 0.004887586 : The conversion factor for a 10-bit ADC with a Vref of 5V.
+     - 0.004888 : The conversion factor for a 10-bit ADC with a Vref of 5V.
      - \ref CURRENT_GAIN : The gain of the current sense operational amplifier.
      - \ref CURRENT_SENSE_RESISTOR : The value of the shunt resistor in
        micro-ohms (μΩ).
 
-   The NEVB-3INV-001-01 comes with a current op-amp with a gain factor of 50 and
-   a current sense resistor of value 2 mΩ. This corresponds to approximately
-   0.049 amperes (A) per register value. The default value is 408 which
-   corresponds to approximately 20 A.
+   The NEVB-MTR1-I56-1 comes with a default current gain factor of 50 and
+   a current sense resistor of value 4 mΩ. This corresponds to approximately
+   0.0244 amperes (A) per register value. The default value is 409 which
+   corresponds to approximately 10 A.
 
    \todo Calculate and set the register value for the current warning threshold.
 
    \see CURRENT_ERROR_THRESHOLD, CURRENT_FAULT_ENABLE, CURRENT_GAIN,
    CURRENT_SENSE_RESISTOR
 */
-#define CURRENT_WARNING_THRESHOLD 408
+#define CURRENT_WARNING_THRESHOLD 409
 
 /*!
    \brief Current Error Threshold (Register Value)
@@ -284,20 +287,20 @@
    register value from the current in amperes, you can use the formula:
 
    \f[ \text{Register Value} = \frac{\text{CURRENT} \times
-      \text{CURRENT_SENSE_RESISTOR} \times \text{CURRENT_GAIN}}{0.004887586
+      \text{CURRENT_SENSE_RESISTOR} \times \text{CURRENT_GAIN}}{0.004888
       \times 1000000} \f]
 
    Where:
      - CURRENT : The current threshold in amperes.
-     - 0.004887586 : The conversion factor for a 10-bit ADC with a Vref of 5V.
+     - 0.004888 : The conversion factor for a 10-bit ADC with a Vref of 5V.
      - \ref CURRENT_GAIN : The gain of the current sense operational amplifier.
      - \ref CURRENT_SENSE_RESISTOR : The value of the shunt resistor in
        micro-ohms (μΩ).
 
-   The NEVB-3INV-001-01 comes with a current op-amp with a gain factor of 50 and
-   a current sense resistor of value 2 mΩ. This corresponds to approximately
-   0.049 amperes (A) per register value. The default value is 816 which
-   corresponds to approximately 40 A.
+   The NEVB-MTR1-I56-1 comes with a default current gain factor of 50 and
+   a current sense resistor of value 4 mΩ. This corresponds to approximately
+   0.0244 amperes (A) per register value. The default value is 614 which
+   corresponds to approximately 15 A.
 
    \note Braking is not implemented yet for this fault, so the motor coasts when
    an error occurs.
@@ -307,7 +310,7 @@
    \see CURRENT_WARNING_THRESHOLD, CURRENT_FAULT_ENABLE, CURRENT_GAIN,
    CURRENT_SENSE_RESISTOR
 */
-#define CURRENT_ERROR_THRESHOLD 816
+#define CURRENT_ERROR_THRESHOLD 614
 
 /*!
    \brief Current Fault Enable
@@ -470,44 +473,44 @@
 #define PID_K_D 0
 
 /*!
-   \brief Top resistor value in the gate voltage potential divider.
+   \brief Top resistor value in the VBUS voltage potential divider.
 
    This macro defines the value of the top resistor (RTOP) in the potential
-   divider circuit used for measuring the gate voltage. It is specified in ohms
+   divider circuit used for measuring the VBUS voltage. It is specified in ohms
    (Ω).
 
    The value of RTOP is used to determine the scaling factor for the ADC
-   conversion in the gate voltage measurement circuit.
+   conversion in the VBUS voltage measurement circuit.
 
-   NEVB-3INV-001-01 has a resistor divider with RTOP of 1 MΩ and RBOTTOM of 71.5
+   NEVB-MTR1-C-1 has a resistor divider with RTOP of 100 kΩ and RBOTTOM of 6.2
    kΩ.
 
    \note Ensure that the resistor value matches the actual hardware component
    used.
 
-   \see GATE_RBOTTOM, gateVref
+   \see VBUS_RBOTTOM, vbusVref
 */
-#define GATE_RTOP 1000000
+#define VBUS_RTOP 100000
 
 /*!
-   \brief Bottom resistor value in the gate voltage potential divider.
+   \brief Bottom resistor value in the VBUS voltage potential divider.
 
    This macro defines the value of the bottom resistor (RBOTTOM) in the
-   potential divider circuit used for measuring the gate voltage. It is
+   potential divider circuit used for measuring the VBUS voltage. It is
    specified in ohms (Ω).
 
    The value of RBOTTOM is used to determine the scaling factor for the ADC
-   conversion in the gate voltage measurement circuit.
+   conversion in the VBUS voltage measurement circuit.
 
-   NEVB-3INV-001-01 has a resistor divider with RTOP of 1 MΩ and RBOTTOM of 71.5
+   NEVB-MTR1-C-1 has a resistor divider with RTOP of 100 kΩ and RBOTTOM of 6.2
    kΩ.
 
    \note Ensure that the resistor value matches the actual hardware component
    used.
 
-   \see GATE_RTOP, gateVref
+   \see VBUS_RTOP, vbusVref
 */
-#define GATE_RBOTTOM 71500
+#define VBUS_RBOTTOM 62
 
 /*!
    \brief Set the remote debug mode.
@@ -520,9 +523,9 @@
 /** @} */
 
 /*!
-   \defgroup SystemFixed System Constant Defines 
+   \defgroup SystemFixed System Constant Defines
 
-   \brief These defines should not be modified by the user. 
+   \brief These defines should not be modified by the user.
 
    \ingroup ConfigDefines
    @{
@@ -597,9 +600,9 @@
 #define ADC_MUX_L_CURRENT ADC_MUX_L_ADC7
 //! High analog channel selection bit (MUX5) for for motor current measurement.
 #define ADC_MUX_H_CURRENT ADC_MUX_H_ADC7
-//! Lower analog channel selection bits (MUX4:0) for motor gateVref measurement.
+//! Lower analog channel selection bits (MUX4:0) for motor vbusVref measurement.
 #define ADC_MUX_L_GATEVREF ADC_MUX_L_ADC6
-//! High analog channel selection bit (MUX5) for for motor gateVref measurement.
+//! High analog channel selection bit (MUX5) for for motor vbusVref measurement.
 #define ADC_MUX_H_GATEVREF ADC_MUX_H_ADC6
 //! Lower analog channel selection bits (MUX4:0) for motor bref measurement.
 #define ADC_MUX_L_BREF ADC_MUX_L_ADC0
@@ -697,7 +700,7 @@
                                               : 0)
 
 /**
-   \def FORCE_INLINE 
+   \def FORCE_INLINE
 
    \brief Macro for forcing inline expansion of functions.
 
@@ -714,7 +717,7 @@
 #endif
 
 /**
-   \def FAST_ACCESS(register_address) 
+   \def FAST_ACCESS(register_address)
 
    \brief Assign a specific memory address to a variable for fast access.
 
@@ -731,7 +734,7 @@
 
 #ifdef __INTELLISENSE__
 /**
-   \def sei() 
+   \def sei()
 
    \brief Macro to simulate the sei() function for IntelliSense for VSCode.
 
@@ -742,7 +745,7 @@
 #define sei() ((void)0)
 
 /**
-   \def cli() 
+   \def cli()
 
    \brief Macro to simulate the cli() function for IntelliSense for VSCode.
 
@@ -754,7 +757,7 @@
 #endif
 
 /**
-   \defgroup PLLMacros PLL Post-scaler Macros 
+   \defgroup PLLMacros PLL Post-scaler Macros
 
    \brief PLL post-scaler selection bits (PLLTM1:0) for High Speed Timer in
    PLLFRQ.
@@ -771,7 +774,7 @@
 /** @} */
 
 /**
-   \defgroup DeadtimeMacros Deadtime Pre-scaler Macros 
+   \defgroup DeadtimeMacros Deadtime Pre-scaler Macros
 
    \brief Deadtime generator pre-scaler selection bits (DTPS41:0) in TCCR4B.
    @{
@@ -787,7 +790,7 @@
 /** @} */
 
 /**
-   \defgroup TIM1ClockMacro Timer 1 (and 3) Clock Select Macros 
+   \defgroup TIM1ClockMacro Timer 1 (and 3) Clock Select Macros
 
    \brief Timer 1 (and 3) clock selection bits (CS12:0/CS12:0) for
    TCCR1B/TCCR3B.
@@ -812,7 +815,7 @@
 /** @} */
 
 /**
-   \defgroup TIM4ClockMacro Timer 4 Clock Select Macros 
+   \defgroup TIM4ClockMacro Timer 4 Clock Select Macros
 
    \brief Timer 4 clock selection bits (CS43:0) for TCCR4B.
    @{
@@ -828,7 +831,7 @@
 /** @} */
 
 /**
-   \defgroup ADCSelect ADC Multiplexer Select Macros 
+   \defgroup ADCSelect ADC Multiplexer Select Macros
 
    \brief ADC multiplexer selection bits (MUX5 and MUX4:0) in ADCSRB and ADMUX
    respectively.
@@ -901,7 +904,7 @@
 /** @} */
 
 /**
-   \defgroup ADCClock ADC Pre-scaler Macros 
+   \defgroup ADCClock ADC Pre-scaler Macros
 
    \brief ADC pre-scaler selection bits (ADPS2:0) in ADCSRA.
    @{
@@ -923,7 +926,7 @@
 /** @} */
 
 /**
-   \defgroup ADCReference ADC Reference Macros 
+   \defgroup ADCReference ADC Reference Macros
 
    \brief ADC voltage reference selection bits (REFS1:0) in ADMUX.
    @{
@@ -937,7 +940,7 @@
 /** @} */
 
 /**
-   \defgroup ADCTrigger ADC Auto Trigger Macros 
+   \defgroup ADCTrigger ADC Auto Trigger Macros
 
    \brief ADC auto trigger source selection bits (ADTS3:0) in ADCSRB.
    @{
@@ -1033,9 +1036,9 @@ typedef struct motorconfigs
 /** @} */
 
 /**
-   \defgroup DerivedDefines Derived Defines 
+   \defgroup DerivedDefines Derived Defines
 
-   \brief These defines are derived from the user settable defines. 
+   \brief These defines are derived from the user settable defines.
 
    \ingroup ConfigDefines
    @{
@@ -1108,15 +1111,15 @@ Divide by frequency to get duration.
   nomenclature when operated through the Arduino IDE.
 
   This documentation documents the data structures, functions, variables,
-  defines, enums, and typedefs in the code designed for the motor driver kit
-  NEVB-MCTRL-100-01-3INV-001-01 which provides a full motor drive solution for
+  defines, enums, and typedefs in the code designed for the motor driver evaluation kit
+  NEVB-MTR1-KIT1 which provides a full motor drive solution for
   3-phase BLDC motors. Support for brushless DC motors shall be implemented
-  later. Specifically, the code is to work with NEVB-MCTRL-100-01 accompanied
-  with any 3-phase inverter modules. In this kit, this is the NEVB-3INV-001-01,
+  later. Specifically, the code is to work with NEVB-MTR1-C-1, accompanied
+  with the 3-phase inverter module NEVB-MTR1-I56-1,
   which contains PCBs designed for the [Nexperia LFPAK 5x6 MOSFET
   family](https://www.nexperia.com/products/mosfets/family/LFPAK56-MOSFETS/).
 
-  \image html evaluation_board.png "Figure: Motor driver kit NEVB-MCTRL-100-01-3INV-001-01."
+  \image html evaluation_board.png "Figure: Motor driver evaluation kit NEVB-MTR1-KIT1."
 
   To fully understand the system's capabilities and limitations, and for
   detailed instructions on setting up the kit, please refer to the accompanying
@@ -1136,7 +1139,7 @@ Divide by frequency to get duration.
 
    The firmware provides an Arduino compatible, or specifically the ATMEGA32u4
    AVR micro controller, trapezoidal control of brushless DC (BLDC) motors using
-   Hall Effect sensors. Most important it's all open-source. 
+   Hall Effect sensors. Most important it's all open-source.
 
    Specific features are discussed below:
 
@@ -1157,7 +1160,7 @@ Divide by frequency to get duration.
    \section drive_controls Drive Controls
    - Slow ramp up or down when turning on the motor or changing the speed
      reference input. (Not when turning it off as this depends on the turn-off
-     mode.) 
+     mode.)
    - Set the direction of rotation of the motor using input buttons.
    - Enable/disable the motor using input buttons.
    - Easily set a duty cycle or speed based on choice of speed control.
@@ -1192,7 +1195,7 @@ Divide by frequency to get duration.
    \section error_handling_and_reporting Error Handling and Reporting
    - Flags to store motor state and error reporting (\ref motorFlags, \ref
      faultFlags).
-   - Fault LEDs to indicate faults. 
+   - Fault LEDs to indicate faults.
    - Detect if inverter board is attached or not.
    - SCPI command for retrieving errors from the error queue (
      SYSTem:ERRor[:NEXT]?).
@@ -1255,12 +1258,12 @@ Divide by frequency to get duration.
 
   Making simple configuration changes can be done by changing the \ref
   UserSettable in the motor header file, \ref main.h. These are also summarized
-  in the \ref todo section. 
+  in the \ref todo section.
 
   \subsection quickstartchanges2 Making code changes
 
   Making any further changes to the code will require understanding of the whole
-  code base and it is recommended to read through the documentation completely. 
+  code base and it is recommended to read through the documentation completely.
 
   \subsection quickstartscpi Using SCPI
 
@@ -1288,7 +1291,7 @@ Divide by frequency to get duration.
     ensuring a tidy and organized workspace, and being cautious of potential
     electrical hazards.
 
-  \image html warning1.png width=70% 
+  \image html warning1.png width=70%
 
   \image html warning2.png width=70%
 
