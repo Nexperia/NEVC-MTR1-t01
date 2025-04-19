@@ -4,9 +4,9 @@
 </picture>
 
 -----------------
-# NEVC-MTR1-t01: Trapezoidal control of brushless DC (BLDC) motors using hall effect sensors firmware for  
+# NEVC-MTR1-t01: Trapezoidal control of brushless DC (BLDC) motors using hall effect sensors firmware for NEVB-MTR1 series evaluation kit 
 
-![Version](https://img.shields.io/badge/Version-1.0.0-blue) [![License - MIT/X Consortium](https://img.shields.io/badge/License-MIT%2FX%20Consortium-green)](https://github.com/Nexperia/NEVC-MCTRL-100-t01/blob/main/LICENSE)
+![Version](https://img.shields.io/badge/Version-1.0.0-blue) [![License - MIT/X Consortium](https://img.shields.io/badge/License-MIT%2FX%20Consortium-green)](https://github.com/Nexperia/NEVB-MTR1-t01/blob/main/LICENSE)
 
 ## Introduction
 
