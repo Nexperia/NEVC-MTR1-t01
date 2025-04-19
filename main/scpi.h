@@ -52,11 +52,11 @@
 //! The manufacturer's name for the identification SCPI query.
 #define SCPI_IDN1 "NEXPERIA"
 //! The device's model number for the identification SCPI query.
-#define SCPI_IDN2 "NEVB-MCTRL-100-xx"
+#define SCPI_IDN2 "NEVB-MTR1-xx"
 //! The device's serial number for the identification SCPI query.
 #define SCPI_IDN3 NULL
 //! The software verion for the identification SCPI query.
-#define SCPI_IDN4 "NEVC-MCTRL-100-t01-1.0.0"
+#define SCPI_IDN4 "NEVC-MTR1-t01-1.0.0"
 
 // External variable declarations
 extern const scpi_command_t scpi_commands[];
@@ -69,7 +69,7 @@ extern volatile motorflags_t motorFlags;
 extern volatile faultflags_t faultFlags;
 extern volatile uint16_t lastCommutationTicks;
 extern volatile uint16_t current;
-extern volatile uint16_t gateVref;
+extern volatile uint16_t vbusVref;
 extern volatile uint8_t speedInput;
 
 // External prototypes

@@ -121,7 +121,7 @@ static scpi_result_t MeasureMotorDirection(scpi_t *context)
 */
 static scpi_result_t MeasureGateVoltage(scpi_t *context)
 {
-  SCPI_ResultDouble(context, ((double)gateVref * 5 * (GATE_RTOP + GATE_RBOTTOM)) / ((double)1024 * GATE_RBOTTOM));
+  SCPI_ResultDouble(context, ((double)vbusVref * 5 * (VBUS_RTOP + VBUS_RBOTTOM)) / ((double)1024 * VBUS_RBOTTOM));
 
   return SCPI_RES_OK;
 }

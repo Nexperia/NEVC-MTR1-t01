@@ -4,7 +4,7 @@
 </picture>
 
 -----------------
-# NEVC-MCTRL-100-t01: Trapezoidal control of brushless DC (BLDC) motors using hall effect sensors firmware for NEVB-MCTRL-100 
+# NEVC-MTR1-t01: Trapezoidal control of brushless DC (BLDC) motors using hall effect sensors firmware for  
 
 ![Version](https://img.shields.io/badge/Version-1.0.0-blue) [![License - MIT/X Consortium](https://img.shields.io/badge/License-MIT%2FX%20Consortium-green)](https://github.com/Nexperia/NEVC-MCTRL-100-t01/blob/main/LICENSE)
 
@@ -16,15 +16,15 @@ LEONARDO board or the ATMEGA32u4 micro controller, platforms widely recognized
 under the Arduino Leonardo nomenclature when operated through the Arduino IDE.
 
 This code is compatible with Nexperia's Motor evaluation kit
-NEVB-MCTRL-100-01-3INV-001-01, which includes the following components:
+NEVB-MTR1-KIT1, which includes the following components:
 
-- Motor Controller Board (NEVB-MCTRL-001-01): The central unit for motor control
+- Motor Controller Board (NEVB-MTR1-C-1): The central unit for motor control
   operations.
-- 3-Phase Inverter Board (NEVB-3INV-001-01): Facilitates the conversion of DC to
+- 3-Phase Inverter Board (NEVB-MTR1-I56-1): Facilitates the conversion of DC to
   AC power for the motor.
 - Leonardo R3 Development Board: Acts as the core micro controller platform for
   the system.
-- 3-Phase BLDC Motor with Hall Sensors (42BLS40-24-01): The motor that is
+- 3-Phase BLDC Motor with Hall Sensors: The motor that is
   directly controlled by the system.
 - Additional screws, plugs, and tools necessary for setup and operation.
 
@@ -53,12 +53,16 @@ also been modified to specifically support the needs of this project.
 
 ## Documentation 
 
-The official documentation is hosted on [https://nexperia.github.io/NEVC-MCTRL-100-t01/](https://nexperia.github.io/NEVC-MCTRL-100-t01/).
+The official documentation is hosted on [https://nexperia.github.io/NEVB-MTR1-t01/](https://nexperia.github.io/NEVB-MTR1-t01/).
 
 ## Generating Documentation (from source)
 
+### Prerequisites
+
+To generate the documentation, run the following command in the root directory of this repository:
+
 Download and install [Doxygen](https://www.doxygen.nl/) (1.9.7 or newer) or use
-package managers like apt or brew for Linux or macOS.
+package managers like apt or brew for Linux or macOS. 
 
 ```
 # For Ubuntu/Debian
@@ -67,6 +71,9 @@ sudo apt-get install doxygen
 # For macOS
 brew install doxygen
 ```
+
+If Doxygen is installed in a location that is not in your system's PATH, you
+may need to add the Doxygen binary path to your PATH environment variable.
 
 Optionally, download [Graphviz](https://graphviz.org/) or use package manager
 commands to install. Doxygen can generate graphical class hierarchy diagrams if
