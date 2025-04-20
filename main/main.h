@@ -22,6 +22,31 @@
 #ifndef _MAIN_H_
 #define _MAIN_H_
 
+//! Define macro for ATmega32U4 micro controller
+#define __AVR_ATmega32U4__ 1
+
+// Include main Arduino library for basic Arduino functions
+#include <Arduino.h>
+
+// Include AVR input/output definitions for low-level hardware control
+#include <avr/io.h>
+
+// Define ISR macro for IntelliSense, else include AVR interrupt handling
+// library
+#ifdef __INTELLISENSE__
+#define ISR(vector) void vector(void)
+#else
+#include <avr/interrupt.h>
+#endif
+
+// Define __LPM macro for IntelliSense, else include AVR program space utility
+// library
+#ifdef __INTELLISENSE__
+#define __LPM(x) 0
+#else
+#include <avr/pgmspace.h>
+#endif
+
 // Include math definitions
 #include <math.h>
 
@@ -597,17 +622,13 @@
 //! measurement.
 #define ADC_MUX_H_SPEED ADC_MUX_H_ADC4
 //! Lower analog channel selection bits (MUX4:0) for motor current measurement.
-#define ADC_MUX_L_CURRENT ADC_MUX_L_ADC7
+#define ADC_MUX_L_CURRENT ADC_MUX_L_ADC5
 //! High analog channel selection bit (MUX5) for for motor current measurement.
-#define ADC_MUX_H_CURRENT ADC_MUX_H_ADC7
+#define ADC_MUX_H_CURRENT ADC_MUX_H_ADC5
 //! Lower analog channel selection bits (MUX4:0) for motor vbusVref measurement.
-#define ADC_MUX_L_GATEVREF ADC_MUX_L_ADC6
+#define ADC_MUX_L_VBUSVREF ADC_MUX_L_ADC6
 //! High analog channel selection bit (MUX5) for for motor vbusVref measurement.
-#define ADC_MUX_H_GATEVREF ADC_MUX_H_ADC6
-//! Lower analog channel selection bits (MUX4:0) for motor bref measurement.
-#define ADC_MUX_L_BREF ADC_MUX_L_ADC0
-//! High analog channel selection bit (MUX5) for for motor bref measurement.
-#define ADC_MUX_H_BREF ADC_MUX_H_ADC0
+#define ADC_MUX_H_VBUSVREF ADC_MUX_H_ADC6
 
 // ADC configurations
 //! ADC clock pre-scaler used in this application.

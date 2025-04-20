@@ -27,34 +27,6 @@
 
  ******************************************************************************/
 
-//! Define macro for ATmega32U4 micro controller
-#define __AVR_ATmega32U4__ 1
-
-// Include main Arduino library for basic Arduino functions
-#include <Arduino.h>
-
-// Include AVR input/output definitions for low-level hardware control
-#include <avr/io.h>
-
-// Define ISR macro for IntelliSense, else include AVR interrupt handling
-// library
-#ifdef __INTELLISENSE__
-#define ISR(vector) void vector(void)
-#else
-#include <avr/interrupt.h>
-#endif
-
-// Define __LPM macro for IntelliSense, else include AVR program space utility
-// library
-#ifdef __INTELLISENSE__
-#define __LPM(x) 0
-#else
-#include <avr/pgmspace.h>
-#endif
-
-// Include standard integer type definitions
-#include <stdint.h>
-
 // Include motor control related headers
 #include "main.h"
 #include "tables.h"
@@ -497,8 +469,8 @@ static void ADCInit(void)
   }
 
   // Select next AD conversion channel [BREF].
-  ADMUX = (ADC_REFERENCE_VOLTAGE | (1 << ADLAR) | ADC_MUX_L_BREF);
-  ADCSRB = ADC_MUX_H_BREF;
+  ADMUX = (ADC_REFERENCE_VOLTAGE | (1 << ADLAR) | ADC_MUX_L_CURRENT);
+  ADCSRB = ADC_MUX_H_CURRENT;
 
   // Enable pull up resistor
   PORTF |= (1 << PF0);
@@ -1291,9 +1263,9 @@ ISR(ADC_vect)
     current = ADCL >> 6;
     current |= (ADCH << 2);
     ADMUX &= ~ADC_MUX_L_BITS;
-    ADMUX |= ADC_MUX_L_GATEVREF;
+    ADMUX |= ADC_MUX_L_VBUSVREF;
     ADCSRB &= ~ADC_MUX_H_BITS;
-    ADCSRB |= ADC_MUX_H_GATEVREF;
+    ADCSRB |= ADC_MUX_H_VBUSVREF;
 
     // Check for over current conditions and set fault flags.
     if (current > CURRENT_ERROR_THRESHOLD)
@@ -1309,7 +1281,7 @@ ISR(ADC_vect)
       faultFlags.overCurrent = FALSE;
     }
     break;
-  case (ADC_MUX_H_GATEVREF | ADC_MUX_L_GATEVREF):
+  case (ADC_MUX_H_VBUSVREF | ADC_MUX_L_VBUSVREF):
     // Handle ADC conversion result for gate voltage reference measurement.
     vbusVref = ADCL >> 6;
     vbusVref |= (ADCH << 2);
