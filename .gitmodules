@@ -1,6 +1,3 @@
 [submodule "docs/theme"]
 	path = docs/theme
 	url = https://github.com/jothepro/doxygen-awesome-css.git
-[submodule "main/src/scpi_parser"]
-	path = main/src/scpi_parser
-	url = https://github.com/Vrekrer/Vrekrer_scpi_parser.git

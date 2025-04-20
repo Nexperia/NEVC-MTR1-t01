@@ -59,8 +59,10 @@
 #include "main.h"
 #include "tables.h"
 #include "fault.h"
-#include "scpi.h"
 #include "filter.h"
+#include "scpi.h"
+// #include "remote.cpp"
+// #include "scpi_interface.h"
 
 // Include PID control algorithm if closed-loop speed control is enabled
 #if (SPEED_CONTROL_METHOD == SPEED_CONTROL_CLOSED_LOOP)
@@ -189,15 +191,6 @@ volatile uint16_t current = 0;
 */
 volatile uint16_t vbusVref = 0;
 
-/*!
-   \brief Buffer for incoming serial data.
-
-   This variable is used to store the latest byte received from the serial
-   interface. It's intended to temporarily hold data as it's being read from the
-   serial buffer.
-*/
-char incoming_byte = 0;
-
 #if (SPEED_CONTROL_METHOD == SPEED_CONTROL_CLOSED_LOOP)
 //! Struct used to hold PID controller parameters and variables.
 pidData_t pidParameters;
@@ -236,13 +229,7 @@ void setup(void)
     // while (!Serial); // wait for serial to finish initializing
 
     // Initialise SCPI subsystem if remote mode.
-    SCPI_Init(&scpi_context,
-              scpi_commands,
-              &scpi_interface,
-              scpi_units_def,
-              SCPI_IDN1, SCPI_IDN2, SCPI_IDN3, SCPI_IDN4,
-              scpi_input_buffer, SCPI_INPUT_BUFFER_LENGTH,
-              scpi_error_queue_data, SCPI_ERROR_QUEUE_SIZE);
+    ScpiInit();
   }
   else
   {
@@ -272,12 +259,7 @@ void loop()
 {
   if (motorFlags.remote == TRUE)
   {
-    // send data to SCPI parser only when you receive data:
-    if (Serial.available() > 0)
-    {
-      incoming_byte = Serial.read();
-      SCPI_Input(&scpi_context, &incoming_byte, 1);
-    }
+    ScpiInput(Serial);
   }
   if (motorFlags.speedControllerRun)
   {
