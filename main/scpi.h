@@ -30,46 +30,13 @@
 #ifndef _SCPI_H_
 #define _SCPI_H_
 
-/// Enable custom error codes in Vrekrer_scpi_parser.h
-#define SCPI_CUSTOM_ERROR_CODES
-
-/// SCPI Error codes.
-enum class ErrorCode
-{
-     /// No error
-     NoError = 0,
-     /// Unknown command received.
-     UnknownCommand,
-     /// Timeout before receiving the termination chars.
-     Timeout,
-     /// Message buffer overflow.
-     BufferOverflow,
-     /// Missing or invalid parameter.
-     MissingOrInvalidParameter,
-};
-
-#include "main.h"
-#include "src/scpi_parser/src/Vrekrer_scpi_parser.h"
-
-// SCPI Command Definitions
-#define SCPI_MAX_COMMANDS 20
+#include "scpi_util.h"
 
 // SCPI Identification Definitions
 #define SCPI_IDN1 "NEXPERIA"
 #define SCPI_IDN2 "NEVB-MTR1-xx"
 #define SCPI_IDN3 ""
 #define SCPI_IDN4 "NEVC-MTR1-t01-1.0.0"
-
-typedef struct _SCPI_choice_def_t
-{
-     String stem;
-     String suffix;
-     int8_t tag;
-} SCPI_choice_def_t;
-#define MOTOR_DIRECTION_OPTIONS 2
-extern const SCPI_choice_def_t motorDirections[MOTOR_DIRECTION_OPTIONS];
-#define INPUT_SOURCE_OPTIONS 2
-extern const SCPI_choice_def_t inputSources[INPUT_SOURCE_OPTIONS];
 
 // External Variables (defined in main.cpp or another relevant file)
 extern volatile motorflags_t motorFlags;
@@ -124,12 +91,4 @@ static void MeasureMotorDirection(SCPI_C commands, SCPI_P parameters, Stream &in
 static void MeasureMotorVoltage(SCPI_C commands, SCPI_P parameters, Stream &interface);
 static void MeasureGateDutyCycle(SCPI_C commands, SCPI_P parameters, Stream &interface);
 
-static uint8_t ScpiParamString(SCPI_P &parameters, String &param);
-static uint8_t ScpiParamUInt8(SCPI_P &parameters, uint8_t &param);
-static uint8_t ScpiParamUInt32(SCPI_P &parameters, uint32_t &param);
-static uint8_t ScpiParamDouble(SCPI_P &parameters, double &param);
-static uint8_t ScpiParamBool(SCPI_P &parameters, bool &param);
-static uint8_t ScpiParamInt8(SCPI_P &parameters, int8_t &param);
-static uint8_t ScpiParamChoice(SCPI_P &parameters, const SCPI_choice_def_t *options, size_t optionsSize, uint8_t &param);
-static uint8_t ScpiChoiceToName(const SCPI_choice_def_t *options, size_t optionsSize, int8_t value, String &name);
 #endif // _SCPI_H_
