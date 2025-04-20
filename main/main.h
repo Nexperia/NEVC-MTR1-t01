@@ -535,7 +535,7 @@
 
    \see VBUS_RTOP, vbusVref
 */
-#define VBUS_RBOTTOM 62
+#define VBUS_RBOTTOM 6200
 
 /*!
    \brief Set the remote debug mode.

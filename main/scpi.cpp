@@ -441,7 +441,6 @@ static void MeasureMotorDirection(SCPI_C context, SCPI_P parameters, Stream &int
 */
 static void MeasureMotorVoltage(SCPI_C context, SCPI_P parameters, Stream &interface)
 {
-    interface.println((double)vbusVref);
     interface.println(((double)vbusVref * 5 * (VBUS_RTOP + VBUS_RBOTTOM)) / ((double)1024 * VBUS_RBOTTOM));
 }
 
