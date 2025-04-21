@@ -40,17 +40,6 @@ modifications to tailor the software to individual needs. The default settings
 in the code are optimized for the motor included in the kit, ensuring a smooth
 start-up and operation for new users.
 
-## Dependencies
-
-The code is dependent on [SCPI Parser Arduino
-Library](https://github.com/sfeister/scpi-parser-arduino) which is a port by
-Scott Feister to the Arduino platform of the [SCPI Parser Library
-v2](https://github.com/sfeister/scpi-parser-arduino) by Jan Breuer. This
-dependency is provided in the source code underneath the `main/src/` directory
-accompanied with its own license (BSD 2-Clause License). Please read through the
-LICENSE file in the dependency directory for more information. The library has
-also been modified to specifically support the needs of this project.
-
 ## Documentation 
 
 The official documentation is hosted on [https://nexperia.github.io/NEVB-MTR1-t01/](https://nexperia.github.io/NEVB-MTR1-t01/).

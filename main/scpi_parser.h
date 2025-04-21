@@ -1,23 +1,41 @@
+/* This file has been prepared for Doxygen automatic documentation generation.*/
+/*! \file *********************************************************************
+
+   \brief
+        SCPI parser header file.
+
+   \details
+        This header file defines the \ref SCPI_Parser class, which is the core component
+        of the library, and was originally part of the
+        [Vrekrer SCPI Parser](https://github.com/Vrekrer/Vrekrer_scpi_parser) project.
+
+        It has been merged into this code base for customization and linking limitations
+        of the Arduino IDE.
+
+        This class provides the functionality to parse and execute commands adhering to
+        the Standard Commands for Programmable Instruments (SCPI) syntax. It includes
+        methods for registering SCPI commands with associated callback functions, setting
+        a command tree base for hierarchical command organization, processing incoming
+        SCPI messages from a serial stream, and handling errors. The class also defines
+        internal structures and variables used for command storage, tokenization, and
+        hashing to efficiently match received commands with their registered handlers.
+
+   \author
+        Nexperia: http://www.nexperia.com
+
+   \par Support Page
+        For additional support, visit: https://www.nexperia.com/support
+
+   $Author: Aanas Sayed $
+   $Date: 2025/04/21 $  \n
+
+ ******************************************************************************/
+
 #ifndef _SCPI_PARSER_H_
 #define _SCPI_PARSER_H_
 
 #include "scpi_config.h"
-#include "scpi_arrays.h"
-
-/// SCPI Error codes.
-enum class ErrorCode
-{
-  /// No error
-  NoError = 0,
-  /// Unknown command received.
-  UnknownCommand,
-  /// Timeout before receiving the termination chars.
-  Timeout,
-  /// Message buffer overflow.
-  BufferOverflow,
-  /// Missing or invalid parameter.
-  MissingOrInvalidParameter,
-};
+#include "scpi_types.h"
 
 /// Void template used with SCPI_Parser::RegisterCommand.
 using SCPI_caller_t = void (*)(SCPI_Commands, SCPI_Parameters, Stream &);
@@ -25,8 +43,14 @@ using SCPI_caller_t = void (*)(SCPI_Commands, SCPI_Parameters, Stream &);
 using SCPI_special_caller_t = void (*)(SCPI_Commands, Stream &);
 
 /*!
-  Main class of the Vrekrer_SCPI_Parser library.
-*/
+ * \brief SCPI Parser class.
+ *
+ * \details
+ * This class provides the functionality to parse and execute commands
+ * based on the Standard Commands for Programmable Instruments (SCPI)
+ * syntax. It allows registering commands with associated callback functions
+ * and handles the processing of incoming messages from a serial stream.
+ */
 class SCPI_Parser
 {
 public:

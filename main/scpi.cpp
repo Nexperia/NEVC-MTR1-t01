@@ -5,16 +5,14 @@
         SCPI implementation source file.
 
    \details
-        This file contains all function callbacks and type definitions necessary
-        for SCPI implementation.
+        This file contains the command handlers for the SCPI parser to recognize and
+        execute.
 
-        This file depends on the base [SCPI parser library v2](https://github.com/j123b567/scpi-parser)
-        (commit #[4e87990](https://github.com/j123b567/scpi-parser/tree/4e879901b51cbb43dab36dd83f95a23f1dbaa4c0))
-        by Jan Breuer which was then ported by Scott Feister to the Arduino IDE,
-        [SCPI Parser Arduino Library](https://github.com/sfeister/scpi-parser-arduino).
+        Most of this code was originally written by Diego González Chávez as part of the
+        [Vrekrer SCPI Parser](https://github.com/Vrekrer/Vrekrer_scpi_parser) project.
 
-        Further modifications were made to the base library to allow for memory
-        optimisation and support for the avr-gcc compiler.
+        It has been merged into the main codebase for customization and linking limitations
+        of the Arduino IDE.
 
    \author
         Nexperia: http://www.nexperia.com
@@ -23,7 +21,7 @@
         For additional support, visit: https://www.nexperia.com/support
 
    $Author: Aanas Sayed $
-   $Date: 2024/03/08 $  \n
+   $Date: 2025/04/21 $  \n
 
  ******************************************************************************/
 
@@ -32,22 +30,26 @@
 // Instantiate the SCPI Parser
 SCPI_Parser scpiParser;
 
+/**
+ * \brief Initializes the SCPI command parser and registers all supported commands.
+ *
+ * This function sets up the SCPI parser instance and registers the core IEEE
+ * mandated commands, required SCPI commands, and the custom motor control
+ * and measurement commands.
+ */
 void ScpiInit(void)
 {
-    // Serial.begin(115200);
-    // while (!Serial)
-    //     ; // wait for serial to finish initializing
-
     /* IEEE Mandated Commands (SCPI std V1999.0 4.1.1) */
-    // scpiParser.RegisterCommand(F("*CLS"), &SCPI_CoreCls);
+    // "*CLS" and "*RST" are not supported
     scpiParser.RegisterCommand(F("*IDN?"), &ScpiCoreIdnQ);
-    // scpiParser.RegisterCommand(F("*RST"), &SCPI_CoreRst);
+
     /* Required SCPI commands (SCPI std V1999.0 4.2.1) */
+    // "SYSTem:VERSion?" and "SYSTem:ERRor:NEXT?" are not supported
     scpiParser.SetCommandTreeBase(F("SYSTem"));
     scpiParser.RegisterCommand(F(":ERRor?"), &ScpiSystemErrorNextQ);
     scpiParser.RegisterCommand(F(":ERRor:COUNt?"), &ScpiSystemErrorCountQ);
-    // scpiParser.RegisterCommand(F("SYSTem:VERSion?"), &SCPI_SystemVersionQ);
-    //   /* Motor */
+
+    /* Motor Configuration Commands */
     scpiParser.SetCommandTreeBase(F("CONFigure"));
     scpiParser.RegisterCommand(F(":ENABle"), &ConfigureMotorEnable);
     scpiParser.RegisterCommand(F(":ENABle?"), &GetMotorEnable);
@@ -62,10 +64,12 @@ void ScpiInit(void)
 #endif
     scpiParser.RegisterCommand(F(":FREQuency"), &ConfigureMotorFrequency);
     scpiParser.RegisterCommand(F(":FREQuency?"), &GetConfigureMotorFrequency);
-    // scpiParser.RegisterCommand(F("CONFigure:MOTOr:GATE:DEADtime"), &ConfigureMotorDeadTime);
-    // scpiParser.RegisterCommand(F("CONFigure:MOTOr:GATE:DEADtime?"), &GetConfigureMotorDeadTime);
+    // scpiParser.RegisterCommand(F("DEADtime"), &ConfigureMotorDeadTime);
+    // scpiParser.RegisterCommand(F("DEADtime?"), &GetConfigureMotorDeadTime);
     scpiParser.RegisterCommand(F(":DIREction"), &ConfigureMotorDirection);
     scpiParser.RegisterCommand(F(":DIREction?"), &GetConfigureMotorDirection);
+
+    /* Motor Measurement Commands */
     scpiParser.SetCommandTreeBase(F("MEASure"));
     scpiParser.RegisterCommand(F(":SPEEd?"), &MeasureMotorSpeed);
     scpiParser.RegisterCommand(F(":CURRent:IBUS?"), &MeasureMotorCurrentVBus);
@@ -75,15 +79,33 @@ void ScpiInit(void)
     scpiParser.RegisterCommand(F(":VOLTage?"), &MeasureMotorVoltage);
     scpiParser.RegisterCommand(F(":DIREction?"), &MeasureMotorDirection);
     scpiParser.RegisterCommand(F(":DUTYcycle?"), &MeasureGateDutyCycle);
-
-    scpiParser.PrintDebugInfo(Serial);
 }
 
+/**
+ * \brief Processes incoming data from a serial interface for SCPI commands.
+ *
+ * This function takes a `Stream` object (like `Serial`) and processes any
+ * received data, looking for complete SCPI commands terminated by a newline
+ * character. It then passes the command to the SCPI parser for execution.
+ *
+ * \param interface The serial stream interface to read commands from.
+ */
 void ScpiInput(Stream &interface)
 {
     scpiParser.ProcessInput(interface, "\n");
 }
 
+/**
+ * \brief Implements the `*IDN?` (Identification Query) command.
+ *
+ * This function responds to the `*IDN?` command by sending the manufacturer,
+ * model, serial number (if defined), and firmware revision of the device.
+ * The identification string is formatted as: `<Manufacturer>,<Model>,<SerialNumber>,<FirmwareRevision>`.
+ *
+ * \param commands The parsed SCPI commands (not used).
+ * \param parameters The parsed SCPI parameters (not used).
+ * \param interface The serial stream interface to write the response to.
+ */
 static void ScpiCoreIdnQ(SCPI_C commands, SCPI_P parameters, Stream &interface)
 {
     interface.print(F(SCPI_IDN1));
@@ -98,11 +120,33 @@ static void ScpiCoreIdnQ(SCPI_C commands, SCPI_P parameters, Stream &interface)
     interface.println(F(SCPI_IDN4));
 }
 
+/**
+ * \brief Implements the `SYSTem:ERRor:COUNt?` (System Error Count Query) command.
+ *
+ * This function returns the number of errors currently in the error queue.
+ * In this simplified implementation, it returns 1 if there was a last error,
+ * and 0 otherwise.
+ *
+ * \param commands The parsed SCPI commands (not used).
+ * \param parameters The parsed SCPI parameters (not used).
+ * \param interface The serial stream interface to write the response to.
+ */
 static void ScpiSystemErrorCountQ(SCPI_C commands, SCPI_P parameters, Stream &interface)
 {
     interface.println(scpiParser.last_error == ErrorCode::NoError ? 0 : 1);
 }
 
+/**
+ * \brief Implements the `SYSTem:ERRor?` (System Error Next Query) command.
+ *
+ * This function returns the oldest error from the error queue and clears it.
+ * In this implementation, it returns a textual description of the last recorded
+ * error and then clears the `last_error` flag.
+ *
+ * \param commands The parsed SCPI commands (not used).
+ * \param parameters The parsed SCPI parameters (not used).
+ * \param interface The serial stream interface to write the response to.
+ */
 static void ScpiSystemErrorNextQ(SCPI_C commands, SCPI_P parameters, Stream &interface)
 {
     switch (scpiParser.last_error)
@@ -129,35 +173,35 @@ static void ScpiSystemErrorNextQ(SCPI_C commands, SCPI_P parameters, Stream &int
 }
 
 /**
-    \brief Retrieves the current motor enable state.
-
-    This function queries the current enable state of the motor and returns it as
-    a boolean value.
-
-    \param commands The SCPI commands.
-    \param parameters The SCPI parameters.
-    \param interface The serial interface.
-*/
+ * \brief Retrieves the current motor enable state.
+ *
+ * This function queries the current enable state of the motor and returns it as
+ * a boolean value (1 for enabled, 0 for disabled).
+ *
+ * \param commands The SCPI commands (not used).
+ * \param parameters The SCPI parameters (not used).
+ * \param interface The serial interface to write the response to.
+ */
 static void GetMotorEnable(SCPI_C commands, SCPI_P parameters, Stream &interface)
 {
     interface.println(motorFlags.enable);
 }
 
 /**
-    \brief Configures the motor's enable state.
-
-    This function reads a boolean parameter from the SCPI command and sets the
-    motor's enable state accordingly.
-
-    In remote mode, the \ref ENABLE_PIN is configured as an output as opposed to
-    an input. The motor is then enabled or disabled by setting or clearing the
-    \ref ENABLE_PIN on the PORTD register, which triggers the relevant software
-    interrupt as it would in normal operation.
-
-    \param commands The SCPI commands.
-    \param parameters The SCPI parameters.
-    \param interface The serial interface.
-*/
+ * \brief Configures the motor's enable state.
+ *
+ * This function reads a boolean parameter (0 or 1) from the SCPI command and sets the
+ * motor's enable state accordingly.
+ *
+ * In remote mode, the `ENABLE_PIN` is configured as an output. The motor is then
+ * enabled or disabled by setting or clearing the `ENABLE_PIN` on the `PORTD`
+ * register, which triggers the relevant software interrupt as it would in normal
+ * operation.
+ *
+ * \param commands The SCPI commands (not used).
+ * \param parameters The SCPI parameters containing the boolean enable value.
+ * \param interface The serial interface (not used).
+ */
 static void ConfigureMotorEnable(SCPI_C commands, SCPI_P parameters, Stream &interface)
 {
     bool param;
@@ -177,20 +221,20 @@ static void ConfigureMotorEnable(SCPI_C commands, SCPI_P parameters, Stream &int
         PORTD &= ~(1 << ENABLE_PIN);
     }
 
-    scpiParser.last_error = ErrorCode::MissingOrInvalidParameter;
+    scpiParser.last_error = ErrorCode::NoError;
 }
 
 /**
-    \brief Configures the motor's speed input source.
-
-    This function reads a boolean parameter from the SCPI command and sets the
-    motor's source corresponding to \ref SPEED_INPUT_SOURCE_LOCAL and \ref
-    SPEED_INPUT_SOURCE_REMOTE.
-
-    \param commands The SCPI commands.
-    \param parameters The SCPI parameters.
-    \param interface The serial interface.
-*/
+ * \brief Configures the motor's speed input source.
+ *
+ * This function reads a choice parameter ('LOCAL' or 'REMOTE') from the SCPI
+ * command and sets the motor's speed input source accordingly, corresponding
+ * to `SPEED_INPUT_SOURCE_LOCAL` and `SPEED_INPUT_SOURCE_REMOTE`.
+ *
+ * \param commands The SCPI commands (not used).
+ * \param parameters The SCPI parameters containing the input source choice.
+ * \param interface The serial interface (not used).
+ */
 #if (SPEED_CONTROL_METHOD == SPEED_CONTROL_OPEN_LOOP)
 static void ConfigureMotorDutyCycleSource(SCPI_C commands, SCPI_P parameters, Stream &interface)
 #elif (SPEED_CONTROL_METHOD == SPEED_CONTROL_CLOSED_LOOP)
@@ -217,18 +261,32 @@ static void ConfigureMotorSpeedSource(SCPI_C commands, SCPI_P parameters, Stream
         speedInput = 0;
         return;
     }
+    scpiParser.last_error = ErrorCode::NoError;
 }
 
 #if (SPEED_CONTROL_METHOD == SPEED_CONTROL_OPEN_LOOP)
 /**
-    \brief Configures the motor's speed input by changing the duty cycle.
-
-    \param commands The SCPI commands.
-    \param parameters The SCPI parameters.
-    \param interface The serial interface.
-*/
+ * \brief Retrieves the configured motor's duty cycle source.
+ *
+ * This function queries the currently configured source for the motor's duty cycle
+ * (either 'LOCAL' or 'REMOTE') and returns it as a string.
+ *
+ * \param commands The SCPI commands (not used).
+ * \param parameters The SCPI parameters (not used).
+ * \param interface The serial interface to write the response to.
+ */
 static void GetConfigureMotorDutyCycleSource(SCPI_C commands, SCPI_P parameters, Stream &interface)
 #elif (SPEED_CONTROL_METHOD == SPEED_CONTROL_CLOSED_LOOP)
+/**
+ * \brief Retrieves the configured motor's speed source.
+ *
+ * This function queries the currently configured source for the motor's speed
+ * (either 'LOCAL' or 'REMOTE') and returns it as a string.
+ *
+ * \param commands The SCPI commands (not used).
+ * \param parameters The SCPI parameters (not used).
+ * \param interface The serial interface to write the response to.
+ */
 static void GetMotorSpeedSource(SCPI_C commands, SCPI_P parameters, Stream &interface)
 #endif
 {
@@ -238,6 +296,16 @@ static void GetMotorSpeedSource(SCPI_C commands, SCPI_P parameters, Stream &inte
 }
 
 #if (SPEED_CONTROL_METHOD == SPEED_CONTROL_OPEN_LOOP)
+/**
+ * \brief Configures the motor's speed input by setting the duty cycle.
+ *
+ * This function reads a double parameter (0.0 to 100.0) from the SCPI command
+ * and sets the motor's duty cycle accordingly.
+ *
+ * \param commands The SCPI commands (not used).
+ * \param parameters The SCPI parameters containing the duty cycle value.
+ * \param interface The serial interface (not used).
+ */
 static void ConfigureMotorDutyCycle(SCPI_C commands, SCPI_P parameters, Stream &interface)
 {
     double param;
@@ -247,15 +315,20 @@ static void ConfigureMotorDutyCycle(SCPI_C commands, SCPI_P parameters, Stream &
         return;
     }
     speedInput = param;
+    scpiParser.last_error = ErrorCode::NoError;
 }
 #elif (SPEED_CONTROL_METHOD == SPEED_CONTROL_CLOSED_LOOP)
 /**
-    \brief Configures the motor's speed input by changing the speed reference.
-
-    \param commands The SCPI commands.
-    \param parameters The SCPI parameters.
-    \param interface The serial interface.
-*/
+ * \brief Configures the motor's speed input by setting the speed reference.
+ *
+ * This function reads a double parameter representing the target speed and
+ * sets the internal speed reference accordingly. The input speed is validated
+ * against the maximum allowed speed.
+ *
+ * \param commands The SCPI commands (not used).
+ * \param parameters The SCPI parameters containing the target speed value.
+ * \param interface The serial interface (not used).
+ */
 static void ConfigureMotorSpeed(SCPI_C commands, SCPI_P parameters, Stream &interface)
 {
     double param;
@@ -265,23 +338,25 @@ static void ConfigureMotorSpeed(SCPI_C commands, SCPI_P parameters, Stream &inte
         return;
     }
     speedInput = ((param * SPEED_CONTROLLER_MAX_INPUT * MOTOR_POLES) >> 3) / ((uint32_t)SPEED_CONTROLLER_MAX_SPEED * 15);
+    scpiParser.last_error = ErrorCode::NoError;
 }
 #endif
 
 /**
-    \brief Configures the motor's operating frequency.
-
-    This function sets the motor's operating frequency based on the input
-    parameter. It validates the frequency range, updates the motor configuration,
-    and reinitializes timers after ensuring the motor is stopped.
-
-    \param commands The SCPI commands.
-    \param parameters The SCPI parameters.
-    \param interface The serial interface.
-*/
+ * \brief Configures the motor's operating frequency.
+ *
+ * This function sets the motor's operating frequency based on the input
+ * parameter. It validates the frequency range (7183 to 100000 Hz), updates
+ * the motor configuration, and reinitializes timers after ensuring the motor
+ * is stopped.
+ *
+ * \param commands The SCPI commands (not used).
+ * \param parameters The SCPI parameters containing the frequency value in Hz.
+ * \param interface The serial interface (not used).
+ */
 static void ConfigureMotorFrequency(SCPI_C commands, SCPI_P parameters, Stream &interface)
 {
-    // Clear the enable pin
+    // Clear the enable pin to stop the motor before changing frequency
     PORTD &= ~(1 << ENABLE_PIN);
 
     uint32_t param;
@@ -303,40 +378,41 @@ static void ConfigureMotorFrequency(SCPI_C commands, SCPI_P parameters, Stream &
         ;
     }
 
-    // Re-init timers
+    // Re-init timers with the new frequency
     TimersInit();
+    scpiParser.last_error = ErrorCode::NoError;
 }
 
 /**
-    \brief Retrieves the configured motor frequency.
-
-    This function queries the current frequency configuration of the motor and
-    returns it as a double value.
-
-    \param commands The SCPI commands.
-    \param parameters The SCPI parameters.
-    \param interface The serial interface.
-*/
+ * \brief Retrieves the configured motor frequency.
+ *
+ * This function queries the current frequency configuration of the motor and
+ * returns it as a double value representing the frequency in Hertz.
+ *
+ * \param commands The SCPI commands (not used).
+ * \param parameters The SCPI parameters (not used).
+ * \param interface The serial interface to write the response to.
+ */
 static void GetConfigureMotorFrequency(SCPI_C commands, SCPI_P parameters, Stream &interface)
 {
     interface.println(motorConfigs.tim4Freq);
 }
 
 /**
-    \brief Sets the motor's direction based on the input parameter.
-
-    This function reads a direction parameter ('FORWard' or 'REVErse') and sets
-    the motor's direction accordingly by manipulating the \ref
-    DIRECTION_COMMAND_PIN on PORTD.
-
-    In remote mode, the \ref DIRECTION_COMMAND_PIN is configured as an output as
-    opposed to an input. Setting or clearing the pin triggers the relevant
-    software interrupt as it would in normal operation.
-
-    \param commands The SCPI commands.
-    \param parameters The SCPI parameters.
-    \param interface The serial interface.
-*/
+ * \brief Sets the motor's direction based on the input parameter.
+ *
+ * This function reads a direction parameter ('FORW' or 'REVE') and sets
+ * the motor's direction accordingly by manipulating the `DIRECTION_COMMAND_PIN`
+ * on `PORTD`.
+ *
+ * In remote mode, the `DIRECTION_COMMAND_PIN` is configured as an output.
+ * Setting or clearing the pin triggers the relevant software interrupt as it
+ * would in normal operation.
+ *
+ * \param commands The SCPI commands (not used).
+ * \param parameters The SCPI parameters containing the direction choice.
+ * \param interface The serial interface (not used).
+ */
 static void ConfigureMotorDirection(SCPI_C commands, SCPI_P parameters, Stream &interface)
 {
     uint8_t param;
@@ -350,27 +426,28 @@ static void ConfigureMotorDirection(SCPI_C commands, SCPI_P parameters, Stream &
 
     if (param)
     {
-        // Set the direction pin if param is 1
+        // Set the direction pin if param is 1 (DIRECTION_REVERSE)
         PORTD |= (1 << DIRECTION_COMMAND_PIN);
     }
     else
     {
-        // Clear the direction pin if param is 0
+        // Clear the direction pin if param is 0 (DIRECTION_FORWARD)
         PORTD &= ~(1 << DIRECTION_COMMAND_PIN);
     }
+    scpiParser.last_error = ErrorCode::NoError;
 }
 
 /**
-    \brief Retrieves the configured direction of the motor.
-
-    This function queries the desired direction of the motor and returns a
-    textual representation ('FORWard' or 'REVErse') based on the motor's desired
-    direction setting.
-
-    \param commands The SCPI commands.
-    \param parameters The SCPI parameters.
-    \param interface The serial interface.
-*/
+ * \brief Retrieves the configured direction of the motor.
+ *
+ * This function queries the desired direction of the motor and returns a
+ * textual representation ('FORW' or 'REVE') based on the `motorFlags.desiredDirection`
+ * setting.
+ *
+ * \param commands The SCPI commands (not used).
+ * \param parameters The SCPI parameters (not used).
+ * \param interface The serial interface to write the response to.
+ */
 static void GetConfigureMotorDirection(SCPI_C commands, SCPI_P parameters, Stream &interface)
 {
     String name;
@@ -379,15 +456,16 @@ static void GetConfigureMotorDirection(SCPI_C commands, SCPI_P parameters, Strea
 }
 
 /**
-    \brief Measures the motor speed.
-
-    This function calculates and returns the motor speed in revolutions per
-    minute (RPM).
-
-    \param commands The SCPI commands.
-    \param parameters The SCPI parameters.
-    \param interface The serial interface.
-*/
+ * \brief Measures the motor speed.
+ *
+ * This function calculates and returns the motor speed in revolutions per
+ * minute (RPM). It uses the time difference between the last two commutation
+ * events and the configured motor frequency and pole count for the calculation.
+ *
+ * \param commands The SCPI commands (not used).
+ * \param parameters The SCPI parameters (not used).
+ * \param interface The serial interface to write the response to.
+ */
 static void MeasureMotorSpeed(SCPI_C commands, SCPI_P parameters, Stream &interface)
 {
     if (lastCommutationTicks == 0xffff)
@@ -397,86 +475,89 @@ static void MeasureMotorSpeed(SCPI_C commands, SCPI_P parameters, Stream &interf
     else
     {
         interface.println(
-            (motorConfigs.tim4Freq * 20) / (lastCommutationTicks * MOTOR_POLES));
+            (motorConfigs.tim4Freq * 20.0) / (lastCommutationTicks * MOTOR_POLES));
     }
 }
 
 /**
-    \brief Measures and returns the motor's VBUS current.
-
-    This function calculates the current being used by the motor and returns it
-    in Amperes.
-
-    \param commands The SCPI commands.
-    \param parameters The SCPI parameters.
-    \param interface The serial interface.
-*/
+ * \brief Measures and returns the motor's VBUS current.
+ *
+ * This function reads the ADC value for the VBUS current sense, converts it
+ * to Amperes using the known gain and sense resistor value.
+ *
+ * \param commands The SCPI commands (not used).
+ * \param parameters The SCPI parameters (not used).
+ * \param interface The serial interface to write the response to.
+ */
 static void MeasureMotorCurrentVBus(SCPI_C commands, SCPI_P parameters, Stream &interface)
 {
-    interface.println(((double)ibus * 5 * 1000000) / ((double)1023 * IBUS_GAIN * IBUS_SENSE_RESISTOR));
+    interface.println(((double)ibus * 5.0 * 1000000.0) / ((double)1023.0 * IBUS_GAIN * IBUS_SENSE_RESISTOR));
 }
 
 /**
-    \brief Measures and returns the motor's phase U current.
-
-    This function calculates the current being used by the motor on phase U
-    and returns it in Amperes.
-
-    \param commands The SCPI commands.
-    \param parameters The SCPI parameters.
-    \param interface The serial interface.
-*/
+ * \brief Measures and returns the motor's phase U current.
+ *
+ * This function reads the ADC value for the phase U current sense, converts it
+ * to Amperes using the known gain and sense resistor value. It accounts for
+ * the ADC offset (typically around 511 for a centered reading).
+ *
+ * \param commands The SCPI commands (not used).
+ * \param parameters The SCPI parameters (not used).
+ * \param interface The serial interface to write the response to.
+ */
 static void MeasureMotorCurrentPhaseU(SCPI_C commands, SCPI_P parameters, Stream &interface)
 {
-    interface.println(((double)(iphaseU - 511) * 5 * 1000000) / ((double)1023 * IPHASE_GAIN * IPHASE_SENSE_RESISTOR));
+    interface.println(((double)(iphaseU - 511) * 5.0 * 1000000.0) / ((double)1023.0 * IPHASE_GAIN * IPHASE_SENSE_RESISTOR));
 }
 
 /**
-    \brief Measures and returns the motor's phase U current.
-
-    This function calculates the current being used by the motor on phase U
-    and returns it in Amperes.
-
-    \param commands The SCPI commands.
-    \param parameters The SCPI parameters.
-    \param interface The serial interface.
-*/
+ * \brief Measures and returns the motor's phase V current.
+ *
+ * This function reads the ADC value for the phase V current sense, converts it
+ * to Amperes using the known gain and sense resistor value. It accounts for
+ * the ADC offset (typically around 511 for a centered reading).
+ *
+ * \param commands The SCPI commands (not used).
+ * \param parameters The SCPI parameters (not used).
+ * \param interface The serial interface to write the response to.
+ */
 static void MeasureMotorCurrentPhaseV(SCPI_C commands, SCPI_P parameters, Stream &interface)
 {
-    interface.println(((double)(iphaseV - 511) * 5 * 1000000) / ((double)1023 * IPHASE_GAIN * IPHASE_SENSE_RESISTOR));
+    interface.println(((double)(iphaseV - 511) * 5.0 * 1000000.0) / ((double)1023.0 * IPHASE_GAIN * IPHASE_SENSE_RESISTOR));
 }
 
 /**
-    \brief Measures and returns the motor's phase U current.
-
-    This function calculates the current being used by the motor on phase U
-    and returns it in Amperes.
-
-    \param commands The SCPI commands.
-    \param parameters The SCPI parameters.
-    \param interface The serial interface.
-*/
+ * \brief Measures and returns the motor's phase W current.
+ *
+ * This function reads the ADC value for the phase W current sense, converts it
+ * to Amperes using the known gain and sense resistor value. It accounts for
+ * the ADC offset (typically around 511 for a centered reading).
+ *
+ * \param commands The SCPI commands (not used).
+ * \param parameters The SCPI parameters (not used).
+ * \param interface The serial interface to write the response to.
+ */
 static void MeasureMotorCurrentPhaseW(SCPI_C commands, SCPI_P parameters, Stream &interface)
 {
-    interface.println(((double)(iphaseW - 511) * 5 * 1000000) / ((double)1023 * IPHASE_GAIN * IPHASE_SENSE_RESISTOR));
+    interface.println(((double)(iphaseW - 511) * 5.0 * 1000000.0) / ((double)1023.0 * IPHASE_GAIN * IPHASE_SENSE_RESISTOR));
 }
 
 /**
-    \brief Measures and reports the current direction of the motor.
-
-    This function checks the current direction of the motor and returns a textual
-    representation ('FORWard', 'REVErse', or 'UNKNown') based on the motor's
-    actual direction.
-
-    \param commands The SCPI commands.
-    \param parameters The SCPI parameters.
-    \param interface The serial interface.
-*/
+ * \brief Measures and reports the current direction of the motor.
+ *
+ * This function checks the `motorFlags.actualDirection` and returns a textual
+ * representation ('FORW', 'REVE', or 'UNKN') based on the motor's sensed
+ * direction.
+ *
+ * \param commands The SCPI commands (not used).
+ * \param parameters The SCPI parameters (not used).
+ * \param interface The serial interface to write the response to.
+ */
 static void MeasureMotorDirection(SCPI_C context, SCPI_P parameters, Stream &interface)
 {
     if (motorFlags.actualDirection == DIRECTION_UNKNOWN)
     {
-        interface.println("UNKNown");
+        interface.println(F("UNKN"));
     }
     else
     {
@@ -487,27 +568,32 @@ static void MeasureMotorDirection(SCPI_C context, SCPI_P parameters, Stream &int
 }
 
 /**
-    \brief Measures and returns the VBUS voltage of the motor.
-
-    This function calculates the VBUS voltage of the motor using the VBUS voltage
-    reference value and returns it in Volts.
-
-    \param commands The SCPI commands.
-    \param parameters The SCPI parameters.
-    \param interface The serial interface.
-*/
+ * \brief Measures and returns the VBUS voltage of the motor.
+ *
+ * This function reads the ADC value for the VBUS voltage reference and converts
+ * it to Volts using the voltage divider resistor values.
+ *
+ * \param commands The SCPI commands (not used).
+ * \param parameters The SCPI parameters (not used).
+ * \param interface The serial interface to write the response to.
+ */
 static void MeasureMotorVoltage(SCPI_C context, SCPI_P parameters, Stream &interface)
 {
-    interface.println(((double)vbusVref * 5 * (VBUS_RTOP + VBUS_RBOTTOM)) / ((double)1023 * VBUS_RBOTTOM));
+    interface.println(((double)vbusVref * 5.0 * (VBUS_RTOP + VBUS_RBOTTOM)) / ((double)1023.0 * VBUS_RBOTTOM));
 }
 
 /**
-    \brief Measures and returns the gate PWM duty cycle.
-
-    \param commands The SCPI commands.
-    \param parameters The SCPI parameters.
-    \param interface The serial interface.
-*/
+ * \brief Measures and returns the gate PWM duty cycle as a percentage.
+ *
+ * This function reads the current PWM duty cycle from Timer4's compare register
+ * (OCR4A) and calculates the percentage relative to the timer's top value.
+ * Interrupts are briefly disabled to ensure atomic reading of the 16-bit duty
+ * cycle value.
+ *
+ * \param commands The SCPI commands (not used).
+ * \param parameters The SCPI parameters (not used).
+ * \param interface The serial interface to write the response to.
+ */
 static void MeasureGateDutyCycle(SCPI_C context, SCPI_P parameters, Stream &interface)
 {
     if (motorFlags.enable == TRUE)
@@ -518,10 +604,36 @@ static void MeasureGateDutyCycle(SCPI_C context, SCPI_P parameters, Stream &inte
         duty |= (0x03 & TC4H) << 8;
         sei();
 
-        interface.println((double)duty / (double)motorConfigs.tim4Top * 100);
+        interface.println((double)duty / (double)motorConfigs.tim4Top * 100.0);
     }
     else
     {
         interface.println(0.0);
     }
 }
+
+/**
+ * \brief Array defining the possible motor directions for SCPI commands.
+ *
+ * This array is used by the SCPI parser to interpret and represent the motor's
+ * direction ('FORW' for forward, 'REVE' for reverse). Each entry in the array
+ * associates a textual representation with a numerical value defined elsewhere
+ * (e.g., `DIRECTION_FORWARD`, `DIRECTION_REVERSE`).
+ */
+const SCPI_choice_def_t motorDirections[MOTOR_DIRECTION_OPTIONS] = {
+    {"FORW", "ard", DIRECTION_FORWARD},
+    {"REVE", "rse", DIRECTION_REVERSE},
+};
+
+/**
+ * \brief Array defining the possible input sources for speed/duty cycle control.
+ *
+ * This array is used by the SCPI parser to interpret and represent the source
+ * of the motor's speed or duty cycle control ('LOCA' for local, 'REMO' for remote).
+ * Each entry associates a textual representation with a numerical value
+ * (e.g., `SPEED_INPUT_SOURCE_LOCAL`, `SPEED_INPUT_SOURCE_REMOTE`).
+ */
+const SCPI_choice_def_t inputSources[INPUT_SOURCE_OPTIONS] = {
+    {"LOCA", "l", SPEED_INPUT_SOURCE_LOCAL},
+    {"REMO", "te", SPEED_INPUT_SOURCE_REMOTE},
+};

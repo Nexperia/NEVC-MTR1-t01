@@ -5,16 +5,14 @@
         SCPI implementation header file.
 
    \details
-        This file contains all the defines for configurations and function prototypes
-        related to the SCPI implementation.
+        This file contains the command definitions for the SCPI parser to recognize and
+        execute.
 
-        This file depends on the base [SCPI parser library v2](https://github.com/j123b567/scpi-parser)
-        (commit #[4e87990](https://github.com/j123b567/scpi-parser/tree/4e879901b51cbb43dab36dd83f95a23f1dbaa4c0))
-        by Jan Breuer which was then ported by Scott Feister to the Arduino IDE,
-        [SCPI Parser Arduino Library](https://github.com/sfeister/scpi-parser-arduino).
+        Most of this code was originally written by Diego González Chávez as part of the
+        [Vrekrer SCPI Parser](https://github.com/Vrekrer/Vrekrer_scpi_parser) project.
 
-        Further modifications were made to the base library to allow for memory
-        optimisation and support for the avr-gcc compiler.
+        It has been merged into the main codebase for customization and linking limitations
+        of the Arduino IDE.
 
    \author
         Nexperia: http://www.nexperia.com
@@ -23,7 +21,7 @@
         For additional support, visit: https://www.nexperia.com/support
 
    $Author: Aanas Sayed $
-   $Date: 2024/03/08 $  \n
+   $Date: 2025/04/21 $  \n
 
  ******************************************************************************/
 
@@ -31,9 +29,17 @@
 #define _SCPI_H_
 
 #include "scpi_config.h"
-#include "scpi_util.h"
+#include "scpi_helper.h"
 
-// External Variables (defined in main.cpp or another relevant file)
+#define MOTOR_DIRECTION_OPTIONS 2
+extern const SCPI_choice_def_t motorDirections[MOTOR_DIRECTION_OPTIONS];
+#define INPUT_SOURCE_OPTIONS 2
+extern const SCPI_choice_def_t inputSources[INPUT_SOURCE_OPTIONS];
+
+/** @cond DOXYGEN_IGNORE */
+// External prototypes and (defined in main.cpp or another relevant file)
+extern void TimersInit(void);
+extern void ConfigsInit(void);
 extern volatile motorflags_t motorFlags;
 extern volatile motorconfigs_t motorConfigs;
 extern volatile faultflags_t faultFlags;
@@ -44,12 +50,7 @@ extern volatile int16_t iphaseV;
 extern volatile int16_t iphaseW;
 extern volatile uint16_t vbusVref;
 extern volatile uint8_t speedInput;
-
-// External prototypes
-//! Initializes and synchronizes Timers.
-extern void TimersInit(void);
-//! Initializes motorConfigs.
-extern void ConfigsInit(void);
+/** @endcond */
 
 // SCPI Parser Instance
 extern SCPI_Parser scpiParser;

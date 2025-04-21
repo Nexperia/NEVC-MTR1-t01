@@ -1,22 +1,68 @@
+/* This file has been prepared for Doxygen automatic documentation generation.*/
+/*! \file *********************************************************************
+
+   \brief
+        SCPI parser implementation file.
+
+   \details
+        This file implements the \ref SCPI_Parser class, which is the core component
+        of the library, and was originally part of the
+        [Vrekrer SCPI Parser](https://github.com/Vrekrer/Vrekrer_scpi_parser) project.
+
+        It has been merged into this code base for customization and linking limitations
+        of the Arduino IDE.
+
+        This class provides the functionality to parse and execute commands adhering to
+        the Standard Commands for Programmable Instruments (SCPI) syntax. It includes
+        methods for registering SCPI commands with associated callback functions, setting
+        a command tree base for hierarchical command organization, processing incoming
+        SCPI messages from a serial stream, and handling errors. The class also defines
+        internal structures and variables used for command storage, tokenization, and
+        hashing to efficiently match received commands with their registered handlers.
+
+   \author
+        Nexperia: http://www.nexperia.com
+
+   \par Support Page
+        For additional support, visit: https://www.nexperia.com/support
+
+   $Author: Aanas Sayed $
+   $Date: 2025/04/21 $  \n
+
+ ******************************************************************************/
+
 #include "scpi_parser.h"
 
 // Do nothing function
 void DefaultErrorHandler(SCPI_C c, SCPI_P p, Stream &interface) {}
 
-// ## SCPI_Registered_Commands member functions. ##
-
-/*!
- SCPI_Parser constructor.
-
- Example:
-  ``SCPI_Parser my_instrument``;
-*/
+/**
+ * \brief SCPI_Parser class constructor.
+ *
+ * \details
+ * Initializes the SCPI_Parser object. It sets the default error handler
+ * to a no-operation function.
+ *
+ * \code
+ * SCPI_Parser my_instrument;
+ * \endcode
+ */
 SCPI_Parser::SCPI_Parser()
 {
   callers_[max_commands] = &DefaultErrorHandler;
 }
 
-/// Add a token to the tokens' storage
+/**
+ * \brief Adds a token to the internal tokens' storage.
+ *
+ * \details
+ * This private method adds a given token (keyword) to the internal storage
+ * used for command parsing. It prevents adding duplicate tokens and checks
+ * for potential overflow of the token storage. Query symbols ('?') at the
+ * end of the token are removed before storing.
+ *
+ * \param token A pointer to a null-terminated character array representing the token to add.
+ */
 void SCPI_Parser::AddToken_(char *token)
 {
   if (tokens_size_ >= max_tokens)
@@ -29,7 +75,7 @@ void SCPI_Parser::AddToken_(char *token)
   if (token[token_size - 1] == '?')
     token_size--;
   for (uint8_t i = 0; i < tokens_size_; i++)
-    // Check if the token is allready added
+    // Check if the token is already added
     if ((strncmp(token, tokens_[i], token_size) == 0) and (token_size == strlen(tokens_[i])))
       return;
   char *stored_token = new char[token_size + 1];
@@ -39,16 +85,21 @@ void SCPI_Parser::AddToken_(char *token)
   tokens_size_++;
 }
 
-/*!
- Get a hash from a valid command
- @param commands  Keywords of a command
- @return hash
-
- Return ``unknown_hash`` if the command contains
- keywords not registered as tokens.
- The hash is calculated including the TreeBase hash.
- @see SetCommandTreeBase
-*/
+/**
+ * \brief Gets a hash code for a valid SCPI command.
+ *
+ * \details
+ * This private method calculates a hash code for a given SCPI command
+ * represented by a \ref SCPI_Commands object. The hash is computed based
+ * on the sequence of keywords in the command and the currently set
+ * command tree base. If any of the keywords in the command are not
+ * registered as known tokens, the function returns `unknown_hash`.
+ *
+ * \param commands A reference to the \ref SCPI_Commands object representing the command keywords.
+ * \return The calculated hash code for the command, or `unknown_hash` if unregistered tokens are found.
+ *
+ * \see SetCommandTreeBase
+ */
 scpi_hash_t SCPI_Parser::GetCommandCode_(SCPI_Commands &commands)
 {
   if (tree_code_ == invalid_hash)
@@ -129,11 +180,21 @@ scpi_hash_t SCPI_Parser::GetCommandCode_(SCPI_Commands &commands)
   return code;
 }
 
-/*!
- Change the TreeBase for the next RegisterCommand calls.
- @param tree_base  TreeBase to be used.
-        An empty string ``""`` sets the TreeBase to root.
-*/
+/**
+ * \brief Changes the base of the command tree for subsequent RegisterCommand calls.
+ *
+ * \details
+ * This method sets a new tree base for organizing SCPI commands hierarchically.
+ * The tree base is a sequence of command keywords separated by colons (':').
+ * Subsequent calls to \ref RegisterCommand will have their command hashes
+ * calculated relative to this tree base. An empty string `""` resets the
+ * tree base to the root.
+ *
+ * \param tree_base A pointer to a null-terminated character array (RAM string) representing the new tree base.
+ * Example: `"SYSTem:COMMunication"`.
+ *
+ * \see RegisterCommand
+ */
 void SCPI_Parser::SetCommandTreeBase(char *tree_base)
 {
   SCPI_Commands tree_tokens(tree_base);
@@ -155,36 +216,58 @@ void SCPI_Parser::SetCommandTreeBase(char *tree_base)
   }
 }
 
-/*!
- SetCommandTreeBase version with RAM string support.
-
- Example:
- ``my_instrument.SetCommandTreeBase("SYSTem:LED");``
- For lower RAM usage use the Flash strings version.
-*/
+/**
+ * \brief SetCommandTreeBase version with RAM string support.
+ *
+ * \details
+ * This overload of \ref SetCommandTreeBase accepts a constant character pointer
+ * for the tree base string, which resides in RAM.
+ *
+ * \param tree_base A constant pointer to a null-terminated character array (RAM string) representing the new tree base.
+ * Example: `"SYSTem:LED"`.
+ *
+ * \see SetCommandTreeBase(char *tree_base)
+ */
 void SCPI_Parser::SetCommandTreeBase(const char *tree_base)
 {
   strcpy(msg_buffer_, tree_base);
   this->SetCommandTreeBase(msg_buffer_);
 }
 
-/*!
- SetCommandTreeBase version with Flash strings (F() macro) support.
-
- Example:
-  ``my_instrument.SetCommandTreeBase(F("SYSTem:LED"));``
-*/
+/**
+ * \brief SetCommandTreeBase version with Flash strings (F() macro) support.
+ *
+ * \details
+ * This overload of \ref SetCommandTreeBase accepts a Flash string helper object,
+ * allowing the tree base string to reside in program memory (Flash), saving RAM.
+ *
+ * \param tree_base A Flash string helper object (created using the F() macro) representing the new tree base.
+ * Example: `F("SYSTem:LED")`.
+ *
+ * \see SetCommandTreeBase(char *tree_base)
+ */
 void SCPI_Parser::SetCommandTreeBase(const __FlashStringHelper *tree_base)
 {
   strcpy_P(msg_buffer_, (const char *)tree_base);
   this->SetCommandTreeBase(msg_buffer_);
 }
 
-/*!
- Registers a new valid command and associate a procedure to it.
- @param command  New valid command.
- @param caller  Procedure associated to the valid command.
-*/
+/**
+ * \brief Registers a new valid SCPI command and associates a callback function with it.
+ *
+ * \details
+ * This method registers a new SCPI command that the parser will recognize. When
+ * a matching command is received and parsed, the provided callback function
+ * will be executed. The command string can include a query symbol ('?') for
+ * query commands. The command is tokenized, and each token is added to the
+ * internal token storage if it's not already present. The command's hash
+ * is calculated based on the current tree base.
+ *
+ * \param command A pointer to a null-terminated character array (RAM string) representing the command.
+ * Example: `"*IDN?"`, `"MEASure:VOLTage?"`, `"CONFigure:VOLTage 10.5"`.
+ * \param caller A function pointer to the callback function (\ref SCPI_caller_t)
+ * to be executed when the command is received.
+ */
 void SCPI_Parser::RegisterCommand(char *command, SCPI_caller_t caller)
 {
   if (codes_size_ >= max_commands)
@@ -211,25 +294,38 @@ void SCPI_Parser::RegisterCommand(char *command, SCPI_caller_t caller)
   codes_size_++;
 }
 
-/*!
- RegisterCommand version with RAM string support.
-
- Example:
-  ``my_instrument.RegisterCommand("*IDN?", &Identify);``
- For lower RAM usage use the Flash strings version.
-*/
+/**
+ * \brief RegisterCommand version with RAM string support.
+ *
+ * \details
+ * This overload of \ref RegisterCommand accepts a constant character pointer
+ * for the command string, which resides in RAM.
+ *
+ * \param command A constant pointer to a null-terminated character array (RAM string) representing the command.
+ * Example: `"*IDN?"`.
+ * \param caller A function pointer to the callback function (\ref SCPI_caller_t).
+ *
+ * \see RegisterCommand(char *command, SCPI_caller_t caller)
+ */
 void SCPI_Parser::RegisterCommand(const char *command, SCPI_caller_t caller)
 {
   strcpy(msg_buffer_, command);
   this->RegisterCommand(msg_buffer_, caller);
 }
 
-/*!
- RegisterCommand version with Flash strings (F() macro) support.
-
- Example:
-  ``my_instrument.RegisterCommand(F("*IDN?"), &Identify);``
-*/
+/**
+ * \brief RegisterCommand version with Flash strings (F() macro) support.
+ *
+ * \details
+ * This overload of \ref RegisterCommand accepts a Flash string helper object,
+ * allowing the command string to reside in program memory (Flash), saving RAM.
+ *
+ * \param command A Flash string helper object (created using the F() macro) representing the command.
+ * Example: `F("*IDN?")`.
+ * \param caller A function pointer to the callback function (\ref SCPI_caller_t).
+ *
+ * \see RegisterCommand(char *command, SCPI_caller_t caller)
+ */
 void SCPI_Parser::RegisterCommand(const __FlashStringHelper *command,
                                   SCPI_caller_t caller)
 {
@@ -237,28 +333,40 @@ void SCPI_Parser::RegisterCommand(const __FlashStringHelper *command,
   this->RegisterCommand(msg_buffer_, caller);
 }
 
-/*!
- Set the function to be used by the error handler.
-
- Example:
-  ``my_instrument.SetErrorHandler(&myErrorHandler);``
-*/
+/**
+ * \brief Sets the function to be used as the error handler.
+ *
+ * \details
+ * This method allows the user to specify a custom error handling function
+ * that will be called when the parser encounters an error, such as an
+ * unknown command or a buffer overflow. The error handler function
+ * receives the parsed commands, parameters (if available), and the
+ * communication interface as arguments.
+ *
+ * \param caller A function pointer to the error handler callback function (\ref SCPI_caller_t).
+ * Example: `&myErrorHandler`.
+ */
 void SCPI_Parser::SetErrorHandler(SCPI_caller_t caller)
 {
   callers_[max_commands] = caller;
 }
 
-/*!
- Process a message and execute it if a valid command is found.
- @param message  Message to be processed.
- @param interface  The source of the message.
-
- Commands and parameters are extracted from the message,
- if a valid command is found, its associated procedure is executed.
- The command' tokens and parameters, and the interface is passed
- to the executed procedure.
- @see GetMessage
-*/
+/**
+ * \brief Processes an incoming SCPI message and executes the associated command if found.
+ *
+ * \details
+ * This method takes a SCPI message as input, parses it into commands and
+ * parameters, and then attempts to find a registered command that matches.
+ * If a match is found, the associated callback function is executed, with
+ * the parsed commands, parameters, and the communication interface passed as arguments.
+ * The message can contain multiple commands separated by semicolons (';').
+ *
+ * \param message A pointer to a null-terminated character array containing the SCPI message to process.
+ * Example: `"*IDN?; MEASure:VOLTage?"`.
+ * \param interface A reference to a Stream object (e.g., Serial) used for communication.
+ *
+ * \see GetMessage
+ */
 void SCPI_Parser::Execute(char *message, Stream &interface)
 {
   while (message != NULL)
@@ -292,11 +400,21 @@ void SCPI_Parser::Execute(char *message, Stream &interface)
   }
 }
 
-/*!
- Gets a message from a Stream interface and execute it.
- @see GetMessage
- @see Execute
-*/
+/**
+ * \brief Reads a message from a Stream interface and executes it.
+ *
+ * \details
+ * This method continuously reads data from the provided Stream interface
+ * until a termination character (or sequence of characters) is detected.
+ * Once a complete message is received, it is passed to the \ref Execute
+ * method for parsing and execution.
+ *
+ * \param interface A reference to a Stream object (e.g., Serial) to read the message from.
+ * \param term_chars A constant pointer to a null-terminated character array containing the termination characters for a message (e.g., "\n", "\r\n").
+ *
+ * \see GetMessage
+ * \see Execute
+ */
 void SCPI_Parser::ProcessInput(Stream &interface, const char *term_chars)
 {
   char *message = this->GetMessage(interface, term_chars);
@@ -306,19 +424,17 @@ void SCPI_Parser::ProcessInput(Stream &interface, const char *term_chars)
   }
 }
 
-/*!
- Gets a message from a Stream interface.
- @param interface  A Stream interface like Serial or Ethernet.
- @param term_chars  Termination chars e.g. ``"\r\n"``.
- @return the read message if the ``term_chars`` are found, otherwise ``NULL``.
-
- Reads the available chars in the interface, if the term_chars are found
- the message is returned, otherwise the return is ``NULL``.
- Subsequent calls to this function continues the message reading.
- The message is discarded, and the error handler is called if:
-  A timeout occurs (SCPI_Parser::timeout ms without new chars) (default 10 ms)
-  The message buffer overflows
-*/
+/**
+ * \brief Reads a message from a Stream interface until termination characters are found.
+ *
+ * \details
+ * This method reads characters from the provided Stream interface and stores
+ * them in an internalinternal buffer until one of the specified termination character sequences is encountered. It also handles communication timeouts and buffer overflows, calling the error handler if either occurs.
+ *
+ * \param interface A reference to a Stream object (e.g., Serial) to read the message from.
+ * \param term_chars A constant pointer to a null-terminated character array containing the termination characters for a message (e.g., "\r\n").
+ * \return A pointer to the internal message buffer containing the received message (without the termination characters), or `NULL` if no complete message is received due to timeout or no incoming data.
+ */
 char *SCPI_Parser::GetMessage(Stream &interface, const char *term_chars)
 {
   while (interface.available())
@@ -371,9 +487,9 @@ char *SCPI_Parser::GetMessage(Stream &interface, const char *term_chars)
       return msg_buffer_;
     }
   }
-  // No more chars aviable yet
+  // No more chars available yet
 
-  // Return NULL if no message is incomming
+  // Return NULL if no message is incoming
   if (message_length_ == 0)
     return NULL;
 
@@ -391,7 +507,19 @@ char *SCPI_Parser::GetMessage(Stream &interface, const char *term_chars)
   return NULL;
 }
 
-/// Prints debug information to an interface.
+/**
+ * \brief Prints debug information about the SCPI parser configuration and status to a Stream interface.
+ *
+ * \details
+ * This method prints various internal details of the SCPI parser, including
+ * the maximum sizes of internal buffers and arrays, the currently registered
+ * tokens and commands with their hash codes and associated handler function
+ * addresses, and any setup errors that might have occurred (e.g., buffer
+ * overflows). This information is useful for debugging and understanding
+ * the parser's internal state.
+ *
+ * \param interface A reference to a Stream object (e.g., Serial) to print the debug information to.
+ */
 void SCPI_Parser::PrintDebugInfo(Stream &interface)
 {
   interface.println(F("*** DEBUG INFO ***\n"));
@@ -416,7 +544,7 @@ void SCPI_Parser::PrintDebugInfo(Stream &interface)
     interface.println(F(" **ERROR** Max tokens exceeded."));
   for (uint8_t i = 0; i < tokens_size_; i++)
   {
-    interface.print(F("  "));
+    interface.print(F("  "));
     interface.print(i + 1);
     interface.print(F(":\t"));
     interface.println(String(tokens_[i]));
@@ -434,10 +562,10 @@ void SCPI_Parser::PrintDebugInfo(Stream &interface)
   interface.println(F(" (SCPI_MAX_COMMANDS)"));
   if (setup_errors.command_overflow)
     interface.println(F(" **ERROR** Max commands exceeded."));
-  interface.println(F("  #\tHash\t\tHandler"));
+  interface.println(F("  #\tHash\t\tHandler"));
   for (uint8_t i = 0; i < codes_size_; i++)
   {
-    interface.print(F("  "));
+    interface.print(F("  "));
     interface.print(i + 1);
     interface.print(F(":\t"));
     interface.print(valid_codes_[i], HEX);
@@ -483,10 +611,10 @@ void SCPI_Parser::PrintDebugInfo(Stream &interface)
   interface.println(F(" (SCPI_MAX_SPECIAL_COMMANDS)"));
   if (setup_errors.special_command_overflow)
     interface.println(F(" **ERROR** Max special commands exceeded."));
-  interface.println(F("  #\tHash\t\tHandler"));
+  interface.println(F("  #\tHash\t\tHandler"));
   for (uint8_t i = 0; i < special_codes_size_; i++)
   {
-    interface.print(F("  "));
+    interface.print(F("  "));
     interface.print(i + 1);
     interface.print(F(":\t"));
     interface.print(valid_special_codes_[i], HEX);
@@ -522,23 +650,36 @@ void SCPI_Parser::PrintDebugInfo(Stream &interface)
 #endif
 
   interface.println(F("\nHASH Configuration:"));
-  interface.print(F("  Hash size: "));
+  interface.print(F("  Hash size: "));
   interface.print((uint8_t)(sizeof(scpi_hash_t) * 8));
   interface.println(F("bits (SCPI_HASH_TYPE)"));
-  interface.print(F("  Hash magic number: "));
+  interface.print(F("  Hash magic number: "));
   interface.println(hash_magic_number);
-  interface.print(F("  Hash magic offset: "));
+  interface.print(F("  Hash magic offset: "));
   interface.println(hash_magic_offset);
   interface.println(F("\n*******************\n"));
 }
 
 #if SCPI_MAX_SPECIAL_COMMANDS
 
-/*!
- Registers a new valid special command and associate a procedure to it.
- @param command  New valid command.
- @param caller  Procedure associated to the valid command.
-*/
+/**
+ * \brief Registers a new valid special SCPI command (without parameters) and associates a callback function with it.
+ *
+ * \details
+ * This method registers a special SCPI command that does not expect any parameters.
+ * When a matching special command is received, the provided callback function
+ * will be executed. The command string can include a query symbol ('?').
+ * The command is tokenized, and each token is added to the internal token
+ * storage if it's not already present. The command's hash is calculated
+ * based on the current tree base. Special commands are typically used for
+ * actions or queries that don't require additional arguments. They are
+ * checked for specifically at the beginning of the input buffer.
+ *
+ * \param command A pointer to a null-terminated character array (RAM string) representing the special command.
+ * Example: `"RESET"`, `"GET:STATUS?"`.
+ * \param caller A function pointer to the callback function (\ref SCPI_special_caller_t)
+ * to be executed when the special command is received.
+ */
 void SCPI_Parser::RegisterSpecialCommand(char *command,
                                          SCPI_special_caller_t caller)
 {
@@ -566,13 +707,19 @@ void SCPI_Parser::RegisterSpecialCommand(char *command,
   special_codes_size_++;
 }
 
-/*!
- RegisterSpecialCommand version with RAM string support.
-
- Example:
-  ``my_instrument.RegisterSpecialCommand("GET:DATA", &getData);``
- For lower RAM usage use the Flash strings version.
-*/
+/**
+ * \brief RegisterSpecialCommand version with RAM string support.
+ *
+ * \details
+ * This overload of \ref RegisterSpecialCommand accepts a constant character
+ * pointer for the special command string, which resides in RAM.
+ *
+ * \param command A constant pointer to a null-terminated character array (RAM string) representing the special command.
+ * Example: `"GET:DATA"`.
+ * \param caller A function pointer to the callback function (\ref SCPI_special_caller_t).
+ *
+ * \see RegisterSpecialCommand(char *command, SCPI_special_caller_t caller)
+ */
 void SCPI_Parser::RegisterSpecialCommand(const char *command,
                                          SCPI_special_caller_t caller)
 {
@@ -580,12 +727,20 @@ void SCPI_Parser::RegisterSpecialCommand(const char *command,
   this->RegisterSpecialCommand(msg_buffer_, caller);
 }
 
-/*!
- RegisterSpecialCommand version with Flash strings (F() macro) support.
-
- Example:
-  ``my_instrument.RegisterSpecialCommand("GET:DATA", &getData);``
-*/
+/**
+ * \brief RegisterSpecialCommand version with Flash strings (F() macro) support.
+ *
+ * \details
+ * This overload of \ref RegisterSpecialCommand accepts a Flash string helper
+ * object, allowing the special command string to reside in program memory
+ * (Flash), saving RAM.
+ *
+ * \param command A Flash string helper object (created using the F() macro) representing the special command.
+ * Example: `F("GET:DATA")`.
+ * \param caller A function pointer to the callback function (\ref SCPI_special_caller_t).
+ *
+ * \see RegisterSpecialCommand(char *command, SCPI_special_caller_t caller)
+ */
 void SCPI_Parser::RegisterSpecialCommand(const __FlashStringHelper *command,
                                          SCPI_special_caller_t caller)
 {
