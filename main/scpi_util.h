@@ -1,27 +1,8 @@
 #ifndef _SCPI_UTIL_H_
 #define _SCPI_UTIL_H_
 
-/// Customise Vrekrer_scpi_parser.h
-#define SCPI_CUSTOM_ERROR_CODES
-#define SCPI_MAX_TOKENS 20
-
-/// SCPI Error codes.
-enum class ErrorCode
-{
-    /// No error
-    NoError = 0,
-    /// Unknown command received.
-    UnknownCommand,
-    /// Timeout before receiving the termination chars.
-    Timeout,
-    /// Message buffer overflow.
-    BufferOverflow,
-    /// Missing or invalid parameter.
-    MissingOrInvalidParameter,
-};
-
 #include "config.h"
-#include "src/scpi_parser/src/Vrekrer_scpi_parser.h"
+#include "scpi_parser.h"
 
 typedef struct _SCPI_choice_def_t
 {

@@ -30,13 +30,8 @@
 #ifndef _SCPI_H_
 #define _SCPI_H_
 
+#include "scpi_config.h"
 #include "scpi_util.h"
-
-// SCPI Identification Definitions
-#define SCPI_IDN1 "NEXPERIA"
-#define SCPI_IDN2 "NEVB-MTR1-xx"
-#define SCPI_IDN3 ""
-#define SCPI_IDN4 "NEVC-MTR1-t01-1.0.0"
 
 // External Variables (defined in main.cpp or another relevant file)
 extern volatile motorflags_t motorFlags;
