@@ -401,7 +401,7 @@ static void MeasureMotorSpeed(SCPI_C commands, SCPI_P parameters, Stream &interf
 */
 static void MeasureMotorCurrent(SCPI_C commands, SCPI_P parameters, Stream &interface)
 {
-    interface.println(((double)current * 5 * 1000000) / ((double)1024 * CURRENT_GAIN * CURRENT_SENSE_RESISTOR));
+    interface.println(((double)current * 5 * 1000000) / ((double)1023 * CURRENT_GAIN * CURRENT_SENSE_RESISTOR));
 }
 
 /**
@@ -441,7 +441,7 @@ static void MeasureMotorDirection(SCPI_C context, SCPI_P parameters, Stream &int
 */
 static void MeasureMotorVoltage(SCPI_C context, SCPI_P parameters, Stream &interface)
 {
-    interface.println(((double)vbusVref * 5 * (VBUS_RTOP + VBUS_RBOTTOM)) / ((double)1024 * VBUS_RBOTTOM));
+    interface.println(((double)vbusVref * 5 * (VBUS_RTOP + VBUS_RBOTTOM)) / ((double)1023 * VBUS_RBOTTOM));
 }
 
 /**
