@@ -3,7 +3,7 @@
 
 /// Customise Vrekrer_scpi_parser.h
 #define SCPI_CUSTOM_ERROR_CODES
-#define SCPI_MAX_COMMANDS 20
+#define SCPI_MAX_TOKENS 20
 
 /// SCPI Error codes.
 enum class ErrorCode
@@ -20,7 +20,7 @@ enum class ErrorCode
     MissingOrInvalidParameter,
 };
 
-#include "main.h"
+#include "config.h"
 #include "src/scpi_parser/src/Vrekrer_scpi_parser.h"
 
 typedef struct _SCPI_choice_def_t

@@ -34,37 +34,49 @@ SCPI_Parser scpiParser;
 
 void ScpiInit(void)
 {
+    // Serial.begin(115200);
+    // while (!Serial)
+    //     ; // wait for serial to finish initializing
+
     /* IEEE Mandated Commands (SCPI std V1999.0 4.1.1) */
     // scpiParser.RegisterCommand(F("*CLS"), &SCPI_CoreCls);
     scpiParser.RegisterCommand(F("*IDN?"), &ScpiCoreIdnQ);
     // scpiParser.RegisterCommand(F("*RST"), &SCPI_CoreRst);
     /* Required SCPI commands (SCPI std V1999.0 4.2.1) */
-    scpiParser.RegisterCommand(F("SYSTem:ERRor?"), &ScpiSystemErrorNextQ);
-    scpiParser.RegisterCommand(F("SYSTem:ERRor:COUNt?"), &ScpiSystemErrorCountQ);
+    scpiParser.SetCommandTreeBase(F("SYSTem"));
+    scpiParser.RegisterCommand(F(":ERRor?"), &ScpiSystemErrorNextQ);
+    scpiParser.RegisterCommand(F(":ERRor:COUNt?"), &ScpiSystemErrorCountQ);
     // scpiParser.RegisterCommand(F("SYSTem:VERSion?"), &SCPI_SystemVersionQ);
     //   /* Motor */
-    scpiParser.RegisterCommand(F("CONFigure:MOTOr:ENABle"), &ConfigureMotorEnable);
-    scpiParser.RegisterCommand(F("CONFigure:MOTOr:ENABle?"), &GetMotorEnable);
+    scpiParser.SetCommandTreeBase(F("CONFigure"));
+    scpiParser.RegisterCommand(F(":ENABle"), &ConfigureMotorEnable);
+    scpiParser.RegisterCommand(F(":ENABle?"), &GetMotorEnable);
 #if (SPEED_CONTROL_METHOD == SPEED_CONTROL_OPEN_LOOP)
-    scpiParser.RegisterCommand(F("CONFigure:MOTOr:GATE:DUTYcycle:SOURce"), &ConfigureMotorDutyCycleSource);
-    scpiParser.RegisterCommand(F("CONFigure:MOTOr:GATE:DUTYcycle:SOURce?"), &GetConfigureMotorDutyCycleSource);
-    scpiParser.RegisterCommand(F("CONFigure:MOTOr:GATE:DUTYcycle"), &ConfigureMotorDutyCycle);
+    scpiParser.RegisterCommand(F(":DUTYcycle:SOURce"), &ConfigureMotorDutyCycleSource);
+    scpiParser.RegisterCommand(F(":DUTYcycle:SOURce?"), &GetConfigureMotorDutyCycleSource);
+    scpiParser.RegisterCommand(F(":DUTYcycle"), &ConfigureMotorDutyCycle);
 #else
-    scpiParser.RegisterCommand(F("CONFigure:MOTOr:SPEED:SOURce"), &ConfigureMotorSpeedSource);
-    scpiParser.RegisterCommand(F("CONFigure:MOTOr:SPEED:SOURce?"), &GetMotorSpeedSource);
-    scpiParser.RegisterCommand(F("CONFigure:MOTOr:SPEED"), &ConfigureMotorSpeed);
+    scpiParser.RegisterCommand(F(":SPEED:SOURce"), &ConfigureMotorSpeedSource);
+    scpiParser.RegisterCommand(F(":SPEED:SOURce?"), &GetMotorSpeedSource);
+    scpiParser.RegisterCommand(F(":SPEED"), &ConfigureMotorSpeed);
 #endif
-    scpiParser.RegisterCommand(F("CONFigure:MOTOr:GATE:FREQuency"), &ConfigureMotorFrequency);
-    scpiParser.RegisterCommand(F("CONFigure:MOTOr:GATE:FREQuency?"), &GetConfigureMotorFrequency);
+    scpiParser.RegisterCommand(F(":FREQuency"), &ConfigureMotorFrequency);
+    scpiParser.RegisterCommand(F(":FREQuency?"), &GetConfigureMotorFrequency);
     // scpiParser.RegisterCommand(F("CONFigure:MOTOr:GATE:DEADtime"), &ConfigureMotorDeadTime);
     // scpiParser.RegisterCommand(F("CONFigure:MOTOr:GATE:DEADtime?"), &GetConfigureMotorDeadTime);
-    scpiParser.RegisterCommand(F("CONFigure:MOTOr:DIREction"), &ConfigureMotorDirection);
-    scpiParser.RegisterCommand(F("CONFigure:MOTOr:DIREction?"), &GetConfigureMotorDirection);
-    scpiParser.RegisterCommand(F("MEASure:MOTOr:SPEEd?"), &MeasureMotorSpeed);
-    scpiParser.RegisterCommand(F("MEASure:MOTOr:VOLTage?"), &MeasureMotorVoltage);
-    scpiParser.RegisterCommand(F("MEASure:MOTOr:CURRent?"), &MeasureMotorCurrent);
-    scpiParser.RegisterCommand(F("MEASure:MOTOr:DIREction?"), &MeasureMotorDirection);
-    scpiParser.RegisterCommand(F("MEASure:MOTOr:GATE:DUTYcycle?"), &MeasureGateDutyCycle);
+    scpiParser.RegisterCommand(F(":DIREction"), &ConfigureMotorDirection);
+    scpiParser.RegisterCommand(F(":DIREction?"), &GetConfigureMotorDirection);
+    scpiParser.SetCommandTreeBase(F("MEASure"));
+    scpiParser.RegisterCommand(F(":SPEEd?"), &MeasureMotorSpeed);
+    scpiParser.RegisterCommand(F(":CURRent:IBUS?"), &MeasureMotorCurrentVBus);
+    scpiParser.RegisterCommand(F(":CURRent:IPHU?"), &MeasureMotorCurrentPhaseU);
+    scpiParser.RegisterCommand(F(":CURRent:IPHV?"), &MeasureMotorCurrentPhaseV);
+    scpiParser.RegisterCommand(F(":CURRent:IPHW?"), &MeasureMotorCurrentPhaseW);
+    scpiParser.RegisterCommand(F(":VOLTage?"), &MeasureMotorVoltage);
+    scpiParser.RegisterCommand(F(":DIREction?"), &MeasureMotorDirection);
+    scpiParser.RegisterCommand(F(":DUTYcycle?"), &MeasureGateDutyCycle);
+
+    scpiParser.PrintDebugInfo(Serial);
 }
 
 void ScpiInput(Stream &interface)
@@ -390,7 +402,7 @@ static void MeasureMotorSpeed(SCPI_C commands, SCPI_P parameters, Stream &interf
 }
 
 /**
-    \brief Measures and returns the motor's current.
+    \brief Measures and returns the motor's VBUS current.
 
     This function calculates the current being used by the motor and returns it
     in Amperes.
@@ -399,9 +411,54 @@ static void MeasureMotorSpeed(SCPI_C commands, SCPI_P parameters, Stream &interf
     \param parameters The SCPI parameters.
     \param interface The serial interface.
 */
-static void MeasureMotorCurrent(SCPI_C commands, SCPI_P parameters, Stream &interface)
+static void MeasureMotorCurrentVBus(SCPI_C commands, SCPI_P parameters, Stream &interface)
 {
-    interface.println(((double)current * 5 * 1000000) / ((double)1023 * CURRENT_GAIN * CURRENT_SENSE_RESISTOR));
+    interface.println(((double)ibus * 5 * 1000000) / ((double)1023 * IBUS_GAIN * IBUS_SENSE_RESISTOR));
+}
+
+/**
+    \brief Measures and returns the motor's phase U current.
+
+    This function calculates the current being used by the motor on phase U
+    and returns it in Amperes.
+
+    \param commands The SCPI commands.
+    \param parameters The SCPI parameters.
+    \param interface The serial interface.
+*/
+static void MeasureMotorCurrentPhaseU(SCPI_C commands, SCPI_P parameters, Stream &interface)
+{
+    interface.println(((double)(iphaseU - 511) * 5 * 1000000) / ((double)1023 * IPHASE_GAIN * IPHASE_SENSE_RESISTOR));
+}
+
+/**
+    \brief Measures and returns the motor's phase U current.
+
+    This function calculates the current being used by the motor on phase U
+    and returns it in Amperes.
+
+    \param commands The SCPI commands.
+    \param parameters The SCPI parameters.
+    \param interface The serial interface.
+*/
+static void MeasureMotorCurrentPhaseV(SCPI_C commands, SCPI_P parameters, Stream &interface)
+{
+    interface.println(((double)(iphaseV - 511) * 5 * 1000000) / ((double)1023 * IPHASE_GAIN * IPHASE_SENSE_RESISTOR));
+}
+
+/**
+    \brief Measures and returns the motor's phase U current.
+
+    This function calculates the current being used by the motor on phase U
+    and returns it in Amperes.
+
+    \param commands The SCPI commands.
+    \param parameters The SCPI parameters.
+    \param interface The serial interface.
+*/
+static void MeasureMotorCurrentPhaseW(SCPI_C commands, SCPI_P parameters, Stream &interface)
+{
+    interface.println(((double)(iphaseW - 511) * 5 * 1000000) / ((double)1023 * IPHASE_GAIN * IPHASE_SENSE_RESISTOR));
 }
 
 /**

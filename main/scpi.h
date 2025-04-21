@@ -43,7 +43,10 @@ extern volatile motorflags_t motorFlags;
 extern volatile motorconfigs_t motorConfigs;
 extern volatile faultflags_t faultFlags;
 extern volatile uint16_t lastCommutationTicks;
-extern volatile uint16_t current;
+extern volatile uint16_t ibus;
+extern volatile int16_t iphaseU;
+extern volatile int16_t iphaseV;
+extern volatile int16_t iphaseW;
 extern volatile uint16_t vbusVref;
 extern volatile uint8_t speedInput;
 
@@ -86,7 +89,10 @@ static void GetConfigureMotorFrequency(SCPI_C commands, SCPI_P parameters, Strea
 static void ConfigureMotorDirection(SCPI_C commands, SCPI_P parameters, Stream &interface);
 static void GetConfigureMotorDirection(SCPI_C commands, SCPI_P parameters, Stream &interface);
 static void MeasureMotorSpeed(SCPI_C commands, SCPI_P parameters, Stream &interface);
-static void MeasureMotorCurrent(SCPI_C commands, SCPI_P parameters, Stream &interface);
+static void MeasureMotorCurrentVBus(SCPI_C commands, SCPI_P parameters, Stream &interface);
+static void MeasureMotorCurrentPhaseU(SCPI_C commands, SCPI_P parameters, Stream &interface);
+static void MeasureMotorCurrentPhaseV(SCPI_C commands, SCPI_P parameters, Stream &interface);
+static void MeasureMotorCurrentPhaseW(SCPI_C commands, SCPI_P parameters, Stream &interface);
 static void MeasureMotorDirection(SCPI_C commands, SCPI_P parameters, Stream &interface);
 static void MeasureMotorVoltage(SCPI_C commands, SCPI_P parameters, Stream &interface);
 static void MeasureGateDutyCycle(SCPI_C commands, SCPI_P parameters, Stream &interface);

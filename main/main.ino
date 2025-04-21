@@ -28,13 +28,11 @@
  ******************************************************************************/
 
 // Include motor control related headers
-#include "main.h"
+#include "config.h"
 #include "tables.h"
 #include "fault.h"
 #include "filter.h"
 #include "scpi.h"
-// #include "remote.cpp"
-// #include "scpi_interface.h"
 
 // Include PID control algorithm if closed-loop speed control is enabled
 #if (SPEED_CONTROL_METHOD == SPEED_CONTROL_CLOSED_LOOP)
@@ -106,7 +104,7 @@ volatile uint8_t speedInput = 0;
 volatile uint8_t speedOutput = 0;
 
 /*!
-   \brief Current measurement (Register Value).
+   \brief Hi-side Current (IBUS) measurement (Register Value).
 
    The most recent current measurement is stored in this variable.
 
@@ -115,24 +113,113 @@ volatile uint8_t speedOutput = 0;
    This value is not scaled and represents the raw ADC register value. To obtain
    the scaled current value in amperes, you can use the formula:
 
-   \f[ \text{Current (A)} = \frac{\text{REGISTER_VALUE} \times 0.004887586
-     \times 1000000}{\text{CURRENT_GAIN} \times \text{CURRENT_SENSE_RESISTOR}}
+   \f[ \text{Current (A)} = \frac{\text{REGISTER_VALUE} \times 0.004888
+     \times 1000000}{\text{IBUS_GAIN} \times \text{IBUS_SENSE_RESISTOR}}
      \f]
 
    Where:
      - REGISTER_VALUE : The raw ADC register value stored in this variable.
-     - 0.004887586 : The conversion factor for a 10-bit ADC with a Vref of 5V.
-     - \ref CURRENT_GAIN : The gain of the current sense operational amplifier.
-     - \ref CURRENT_SENSE_RESISTOR : The value of the shunt resistor in
+     - 0.004888 : The conversion factor for a 10-bit ADC with a Vref of 5V.
+     - \ref IBUS_GAIN : The gain of the current sense operational amplifier.
+     - \ref IBUS_SENSE_RESISTOR : The value of the shunt resistor in
        micro-ohms (μΩ).
 
-   The NEVB-3INV-001-01 comes with a current op-amp with a gain factor of 50 and
-   a current sense resistor of value 2 mΩ. This corresponds to approximately
-   0.049 amperes (A) per register value.
+   The NEVB-MTR1-I56-1 comes with a current op-amp with a gain factor of 50 and
+   a current sense resistor of value 4 mΩ. This corresponds to approximately
+   0.0244 amperes (A) per register value.
 
-   \see CURRENT_WARNING_THRESHOLD, CURRENT_ERROR_THRESHOLD
+   \see IBUS_WARNING_THRESHOLD, IBUS_ERROR_THRESHOLD
 */
-volatile uint16_t current = 0;
+volatile uint16_t ibus = 0;
+
+/*!
+   \brief In-line Phase U current current measurement (Register Value).
+
+   The most recent current measurement is stored in this variable.
+
+   The range is 0-1023.
+
+   This value is not scaled and represents the raw ADC register value. To obtain
+   the scaled current value in amperes, you can use the formula:
+
+   \f[ \text{Current (A)} = \frac{\text{REGISTER_VALUE} \times 0.004888
+     \times 1000000}{\text{IBUS_GAIN} \times \text{IBUS_SENSE_RESISTOR}}
+     \f]
+
+   Where:
+     - REGISTER_VALUE : The raw ADC register value stored in this variable.
+     - 0.004888 : The conversion factor for a 10-bit ADC with a Vref of 5V.
+     - \ref IPHASE_GAIN : The gain of the current sense operational amplifier.
+     - \ref IPHASE_SENSE_RESISTOR : The value of the shunt resistor in
+       micro-ohms (μΩ).
+
+   The NEVB-MTR1-I56-1 comes with a current op-amp with a gain factor of 20 and
+   a current sense resistor of value 2.5 mΩ. This corresponds to approximately
+   TODO: amperes (A) per register value.
+
+   \note It is not used for any significant purpose in this implementation, but
+   the measurement is updated.
+*/
+volatile int16_t iphaseU = 0;
+/*!
+   \brief In-line Phase V current current measurement (Register Value).
+
+   The most recent current measurement is stored in this variable.
+
+   The range is 0-1023.
+
+   This value is not scaled and represents the raw ADC register value. To obtain
+   the scaled current value in amperes, you can use the formula:
+
+   \f[ \text{Current (A)} = \frac{\text{REGISTER_VALUE} \times 0.004888
+     \times 1000000}{\text{IBUS_GAIN} \times \text{IBUS_SENSE_RESISTOR}}
+     \f]
+
+   Where:
+     - REGISTER_VALUE : The raw ADC register value stored in this variable.
+     - 0.004888 : The conversion factor for a 10-bit ADC with a Vref of 5V.
+     - \ref IPHASE_GAIN : The gain of the current sense operational amplifier.
+     - \ref IPHASE_SENSE_RESISTOR : The value of the shunt resistor in
+       micro-ohms (μΩ).
+
+   The NEVB-MTR1-I56-1 comes with a current op-amp with a gain factor of 20 and
+   a current sense resistor of value 2.5 mΩ. This corresponds to approximately
+   TODO: amperes (A) per register value.
+
+   \note It is not used for any significant purpose in this implementation, but
+   the measurement is updated.
+*/
+volatile int16_t iphaseV = 0;
+
+/*!
+   \brief In-line Phase W current current measurement (Register Value).
+
+   The most recent current measurement is stored in this variable.
+
+   The range is 0-1023.
+
+   This value is not scaled and represents the raw ADC register value. To obtain
+   the scaled current value in amperes, you can use the formula:
+
+   \f[ \text{Current (A)} = \frac{\text{REGISTER_VALUE} \times 0.004888
+     \times 1000000}{\text{IBUS_GAIN} \times \text{IBUS_SENSE_RESISTOR}}
+     \f]
+
+   Where:
+     - REGISTER_VALUE : The raw ADC register value stored in this variable.
+     - 0.004888 : The conversion factor for a 10-bit ADC with a Vref of 5V.
+     - \ref IPHASE_GAIN : The gain of the current sense operational amplifier.
+     - \ref IPHASE_SENSE_RESISTOR : The value of the shunt resistor in
+       micro-ohms (μΩ).
+
+   The NEVB-MTR1-I56-1 comes with a current op-amp with a gain factor of 20 and
+   a current sense resistor of value 2.5 mΩ. This corresponds to approximately
+   TODO: amperes (A) per register value.
+
+   \note It is not used for any significant purpose in this implementation, but
+   the measurement is updated.
+*/
+volatile int16_t iphaseW = 0;
 
 /*!
   \brief VBUS voltage measurement (Register Value)
@@ -199,6 +286,8 @@ void setup(void)
     // Start serial interface with 115200 bauds.
     Serial.begin(115200);
     // while (!Serial); // wait for serial to finish initializing
+    while (!Serial)
+      ; // wait for serial to finish initializing
 
     // Initialise SCPI subsystem if remote mode.
     ScpiInit();
@@ -353,6 +442,11 @@ static void PortsInit(void)
     The overflow event interrupt for Timer 4 is set outside this function at the
     end of the main initialization function.
 
+    Timer 0 is used by the Ardiono core to generate interrupts. For reference,
+    it is set up in mode 3 (Fast PWM, TOP=0xFF) with a prescaler of 64. This means
+    ovwerflow occurs ~977 times per second. The overflow interrupt is used to
+    trigger the ADC conversion unless changed by the user.
+
     \see EMULATE_HALL, TIM3_FREQ, TimersSetModeBlockCommutation(),
     TimersSetModeBrake()
 */
@@ -430,6 +524,11 @@ static void PinChangeIntInit(void)
     After self-testing, the ADC is configured for speed reference measurements
     and set to trigger on \ref ADC_TRIGGER.
 
+    \note \ref ADC_TRIGGER is set to \ref ADC_TRIGGER_TIMER0_OVF. This triggers
+    the ADC at a rate of ~977 samples per second. The ADC prescaler is set to
+    \ref ADC_PRESCALER_DIV_128 as this gives a 125kHz ADC clock. It is recommended
+    to have the ADC clock between 50kHz and 200kHz to get maximum ADC resolution.
+
     \see ADC_TRIGGER
 */
 static void ADCInit(void)
@@ -469,8 +568,8 @@ static void ADCInit(void)
   }
 
   // Select next AD conversion channel [BREF].
-  ADMUX = (ADC_REFERENCE_VOLTAGE | (1 << ADLAR) | ADC_MUX_L_CURRENT);
-  ADCSRB = ADC_MUX_H_CURRENT;
+  ADMUX = (ADC_REFERENCE_VOLTAGE | (1 << ADLAR) | ADC_MUX_L_IBUS);
+  ADCSRB = ADC_MUX_H_IBUS;
 
   // Enable pull up resistor
   PORTF |= (1 << PF0);
@@ -1254,25 +1353,25 @@ ISR(ADC_vect)
       speedInput = ADCH;
     }
     ADMUX &= ~ADC_MUX_L_BITS;
-    ADMUX |= ADC_MUX_L_CURRENT;
+    ADMUX |= ADC_MUX_L_IBUS;
     ADCSRB &= ~ADC_MUX_H_BITS;
-    ADCSRB |= ADC_MUX_H_CURRENT;
+    ADCSRB |= ADC_MUX_H_IBUS;
     break;
-  case (ADC_MUX_H_CURRENT | ADC_MUX_L_CURRENT):
+  case (ADC_MUX_H_IBUS | ADC_MUX_L_IBUS):
     // Handle ADC conversion result for current measurement.
-    current = ADCL >> 6;
-    current |= (ADCH << 2);
+    ibus = ADCL >> 6;
+    ibus |= (ADCH << 2);
     ADMUX &= ~ADC_MUX_L_BITS;
-    ADMUX |= ADC_MUX_L_VBUSVREF;
+    ADMUX |= ADC_MUX_L_IPHASE_U;
     ADCSRB &= ~ADC_MUX_H_BITS;
-    ADCSRB |= ADC_MUX_H_VBUSVREF;
+    ADCSRB |= ADC_MUX_H_IPHASE_U;
 
     // Check for over current conditions and set fault flags.
-    if (current > CURRENT_ERROR_THRESHOLD)
+    if (ibus > IBUS_ERROR_THRESHOLD)
     {
       FatalError((uint8_t)0b0100111);
     }
-    else if (current > CURRENT_WARNING_THRESHOLD)
+    else if (ibus > IBUS_WARNING_THRESHOLD)
     {
       faultFlags.overCurrent = TRUE;
     }
@@ -1280,6 +1379,33 @@ ISR(ADC_vect)
     {
       faultFlags.overCurrent = FALSE;
     }
+    break;
+  case (ADC_MUX_H_IPHASE_U | ADC_MUX_L_IPHASE_U):
+    // Handle ADC conversion result for phase current measurement.
+    iphaseU = ADCL >> 6;
+    iphaseU |= (ADCH << 2);
+    ADMUX &= ~ADC_MUX_L_BITS;
+    ADMUX |= ADC_MUX_L_IPHASE_V;
+    ADCSRB &= ~ADC_MUX_H_BITS;
+    ADCSRB |= ADC_MUX_H_IPHASE_V;
+    break;
+  case (ADC_MUX_H_IPHASE_V | ADC_MUX_L_IPHASE_V):
+    // Handle ADC conversion result for phase current measurement.
+    iphaseV = ADCL >> 6;
+    iphaseV |= (ADCH << 2);
+    ADMUX &= ~ADC_MUX_L_BITS;
+    ADMUX |= ADC_MUX_L_IPHASE_W;
+    ADCSRB &= ~ADC_MUX_H_BITS;
+    ADCSRB |= ADC_MUX_H_IPHASE_W;
+    break;
+  case (ADC_MUX_H_IPHASE_W | ADC_MUX_L_IPHASE_W):
+    // Handle ADC conversion result for phase current measurement.
+    iphaseW = ADCL >> 6;
+    iphaseW |= (ADCH << 2);
+    ADMUX &= ~ADC_MUX_L_BITS;
+    ADMUX |= ADC_MUX_L_VBUSVREF;
+    ADCSRB &= ~ADC_MUX_H_BITS;
+    ADCSRB |= ADC_MUX_H_VBUSVREF;
     break;
   case (ADC_MUX_H_VBUSVREF | ADC_MUX_L_VBUSVREF):
     // Handle ADC conversion result for gate voltage reference measurement.

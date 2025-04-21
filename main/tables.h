@@ -36,7 +36,7 @@
 #else
 #include <avr/pgmspace.h>
 #endif
-#include "main.h"
+#include "config.h"
 
 /*! \brief Block Commutation Port Direction Masks for Forward Driving
 
