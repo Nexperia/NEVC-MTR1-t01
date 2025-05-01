@@ -323,15 +323,15 @@
 
    The NEVB-MTR1-I56-1 comes with a default current gain factor of 50 and
    a current sense resistor of value 4 mΩ. This corresponds to approximately
-   0.0244 amperes (A) per register value. The default value is 409 which
-   corresponds to approximately 10 A.
+   0.0244 amperes (A) per register value. The default value is 103 which
+   corresponds to approximately 2.5 A.
 
    \todo Calculate and set the register value for the current warning threshold.
 
    \see IBUS_ERROR_THRESHOLD, IBUS_FAULT_ENABLE, IBUS_GAIN,
    IBUS_SENSE_RESISTOR
 */
-#define IBUS_WARNING_THRESHOLD 409
+#define IBUS_WARNING_THRESHOLD 103
 
 /*!
    \brief Hi-side Current (IBUS) Error Threshold (Register Value)
