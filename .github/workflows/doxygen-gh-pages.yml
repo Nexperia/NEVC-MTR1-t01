@@ -23,7 +23,7 @@ concurrency:
 jobs:
   # Build job
   build:
-    runs-on: ubuntu-latest  # Or a runner with Doxygen pre-installed
+    runs-on: ubuntu-latest # Or a runner with Doxygen pre-installed
 
     steps:
       - uses: actions/checkout@v3
@@ -31,7 +31,7 @@ jobs:
       - name: Download Doxygen
         run: |
           mkdir -p doxygen
-          curl -L https://github.com/doxygen/doxygen/releases/download/Release_1_10_0/doxygen-1.10.0.linux.bin.tar.gz -o doxygen/doxygen.tar.gz
+          curl -L https://www.doxygen.nl/files/doxygen-1.13.2.src.tar.gzact -o doxygen/doxygen.tar.gz
 
       - name: Extract Doxygen
         run: |
@@ -48,7 +48,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install graphviz -y
-      
+
       - name: Checkout submodules
         # Initialize and update submodules
         run: git submodule update --init
@@ -62,7 +62,7 @@ jobs:
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
-      
+
       - name: Build with Jekyll
         uses: actions/jekyll-build-pages@v1
         with:
