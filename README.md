@@ -42,7 +42,7 @@ start-up and operation for new users.
 
 ## Documentation 
 
-The official documentation is hosted on [https://nexperia.github.io/NEVB-MTR1-t01/](https://nexperia.github.io/NEVB-MTR1-t01/).
+The official documentation is hosted on [https://nexperia.github.io/NEVC-MTR1-t01/](https://nexperia.github.io/NEVC-MTR1-t01/).
 
 ## Generating Documentation (from source)
 
