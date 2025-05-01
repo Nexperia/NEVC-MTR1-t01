@@ -215,11 +215,13 @@
 /*!
    \brief Turn Off Mode
 
-   Set this macro to either \ref TURN_OFF_MODE_COAST or \ref TURN_OFF_MODE_BRAKE
+   Set this macro to either \ref TURN_OFF_MODE_COAST <s>or \ref TURN_OFF_MODE_BRAKE</s>
    to specify the desired turn mode.
 
-   \todo Select the turn mode by assigning \ref TURN_OFF_MODE_COAST or \ref
-   TURN_OFF_MODE_BRAKE.
+   \todo Select the turn mode by assigning \ref TURN_OFF_MODE_COAST <s>or \ref
+   TURN_OFF_MODE_BRAKE</s>.
+
+   \warning Do not use \ref TURN_OFF_MODE_BRAKE as currently it not properly implemented.
 
    \see TURN_OFF_MODE_BRAKE, TURN_OFF_MODE_COAST
 */
