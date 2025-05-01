@@ -2,7 +2,7 @@
 /*! \file ********************************************************************
 
    \brief
-        Motor control header file.
+        Motor config header file.
 
    \details
         This file contains all defines, typedefs, and prototypes related to
@@ -22,6 +22,31 @@
 #ifndef _MAIN_H_
 #define _MAIN_H_
 
+//! Define macro for ATmega32U4 micro controller
+#define __AVR_ATmega32U4__ 1
+
+// Include main Arduino library for basic Arduino functions
+#include <Arduino.h>
+
+// Include AVR input/output definitions for low-level hardware control
+#include <avr/io.h>
+
+// Define ISR macro for IntelliSense, else include AVR interrupt handling
+// library
+#ifdef __INTELLISENSE__
+#define ISR(vector) void vector(void)
+#else
+#include <avr/interrupt.h>
+#endif
+
+// Define __LPM macro for IntelliSense, else include AVR program space utility
+// library
+#ifdef __INTELLISENSE__
+#define __LPM(x) 0
+#else
+#include <avr/pgmspace.h>
+#endif
+
 // Include math definitions
 #include <math.h>
 
@@ -33,7 +58,7 @@
 
    \brief Collection of definitions that control system behavior.
 
-   These are definitions that exist inside \ref main.h contains that control the
+   These are definitions that exist inside \ref config.h contains that control the
    behavior of the system. The configuration definitions are organized into
    different groups based on their purpose and modifiability.
 */
@@ -190,15 +215,52 @@
 /*!
    \brief Turn Off Mode
 
-   Set this macro to either \ref TURN_OFF_MODE_COAST or \ref TURN_OFF_MODE_BRAKE
+   Set this macro to either \ref TURN_OFF_MODE_COAST <s>or \ref TURN_OFF_MODE_BRAKE</s>
    to specify the desired turn mode.
 
-   \todo Select the turn mode by assigning \ref TURN_OFF_MODE_COAST or \ref
-   TURN_OFF_MODE_BRAKE.
+   \todo Select the turn mode by assigning \ref TURN_OFF_MODE_COAST <s>or \ref
+   TURN_OFF_MODE_BRAKE</s>.
+
+   \warning Do not use \ref TURN_OFF_MODE_BRAKE as currently it not properly implemented.
 
    \see TURN_OFF_MODE_BRAKE, TURN_OFF_MODE_COAST
 */
 #define TURN_OFF_MODE TURN_OFF_MODE_COAST
+
+/*!
+   \brief In-line Phase Current Gain for Current Measurement
+
+   This macro defines the gain factor used in the current measurement circuit.
+   The gain is a unit-less multiplier that amplifies the signal from the current
+   sensor before it is read by the controller. It is used in the calculation to
+   convert the sensor reading into an actual current value.
+
+   The NEVB-MTR1-I56-1 comes with a single gain factor option for the in-line
+   phase current measurement circuit - 20.
+
+   \note Ensure that the gain value is correct.
+
+   \see IPHASE_SENSE_RESISTOR
+*/
+#define IPHASE_GAIN 20
+
+/*!
+   \brief Hi-side Current (IBUS) Sense Resistor Value
+
+   This macro specifies the resistance value of the current sense resistor in
+   the system, measured in micro-ohms (μΩ). The value is used in conjunction
+   with the current gain to calculate the actual current based on the voltage
+   across the current sense resistor.
+
+   The NEVB-MTR1-I56-1 comes with a in-line phase current sense resistors of
+   value 2.5 mΩ. This is the default value.
+
+   \note Ensure that the resistor value matches the actual hardware component
+   used.
+
+   \see IPHASE_GAIN
+*/
+#define IPHASE_SENSE_RESISTOR 2500
 
 /*!
    \brief Hi-side Current (IBUS) Gain for Current Measurement
@@ -216,12 +278,12 @@
 
    \note Ensure that the gain value is correct.
 
-   \see CURRENT_SENSE_RESISTOR
+   \see IBUS_SENSE_RESISTOR
 */
-#define CURRENT_GAIN 50
+#define IBUS_GAIN 50
 
 /*!
-   \brief Current Sense Resistor Value
+   \brief Hi-side Current (IBUS) Sense Resistor Value
 
    This macro specifies the resistance value of the current sense resistor in
    the system, measured in micro-ohms (μΩ). The value is used in conjunction
@@ -234,12 +296,12 @@
    \note Ensure that the resistor value matches the actual hardware component
    used.
 
-   \see CURRENT_GAIN
+   \see IBUS_GAIN
 */
-#define CURRENT_SENSE_RESISTOR 4000
+#define IBUS_SENSE_RESISTOR 4000
 
 /*!
-   \brief Current Warning Threshold (Register Value)
+   \brief Hi-side Current (IBUS) Warning Threshold (Register Value)
 
    This macro specifies the threshold value for current warning as a register
    value. When the current measured by the controller exceeds this threshold, it
@@ -251,30 +313,30 @@
    register value from the current in amperes, you can use the formula:
 
    \f[ \text{Register Value} = \frac{\text{CURRENT} \times
-      \text{CURRENT_SENSE_RESISTOR} \times \text{CURRENT_GAIN}}{0.004888
+      \text{IBUS_SENSE_RESISTOR} \times \text{IBUS_GAIN}}{0.004888
       \times 1000000} \f]
 
    Where:
      - CURRENT : The current threshold in amperes.
      - 0.004888 : The conversion factor for a 10-bit ADC with a Vref of 5V.
-     - \ref CURRENT_GAIN : The gain of the current sense operational amplifier.
-     - \ref CURRENT_SENSE_RESISTOR : The value of the shunt resistor in
+     - \ref IBUS_GAIN : The gain of the current sense operational amplifier.
+     - \ref IBUS_SENSE_RESISTOR : The value of the shunt resistor in
        micro-ohms (μΩ).
 
    The NEVB-MTR1-I56-1 comes with a default current gain factor of 50 and
    a current sense resistor of value 4 mΩ. This corresponds to approximately
-   0.0244 amperes (A) per register value. The default value is 409 which
-   corresponds to approximately 10 A.
+   0.0244 amperes (A) per register value. The default value is 103 which
+   corresponds to approximately 2.5 A.
 
    \todo Calculate and set the register value for the current warning threshold.
 
-   \see CURRENT_ERROR_THRESHOLD, CURRENT_FAULT_ENABLE, CURRENT_GAIN,
-   CURRENT_SENSE_RESISTOR
+   \see IBUS_ERROR_THRESHOLD, IBUS_FAULT_ENABLE, IBUS_GAIN,
+   IBUS_SENSE_RESISTOR
 */
-#define CURRENT_WARNING_THRESHOLD 409
+#define IBUS_WARNING_THRESHOLD 103
 
 /*!
-   \brief Current Error Threshold (Register Value)
+   \brief Hi-side Current (IBUS) Error Threshold (Register Value)
 
    This macro specifies the threshold value for current error as a register
    value. When the current measured by the controller exceeds this threshold, it
@@ -287,14 +349,14 @@
    register value from the current in amperes, you can use the formula:
 
    \f[ \text{Register Value} = \frac{\text{CURRENT} \times
-      \text{CURRENT_SENSE_RESISTOR} \times \text{CURRENT_GAIN}}{0.004888
+      \text{IBUS_SENSE_RESISTOR} \times \text{IBUS_GAIN}}{0.004888
       \times 1000000} \f]
 
    Where:
      - CURRENT : The current threshold in amperes.
      - 0.004888 : The conversion factor for a 10-bit ADC with a Vref of 5V.
-     - \ref CURRENT_GAIN : The gain of the current sense operational amplifier.
-     - \ref CURRENT_SENSE_RESISTOR : The value of the shunt resistor in
+     - \ref IBUS_GAIN : The gain of the current sense operational amplifier.
+     - \ref IBUS_SENSE_RESISTOR : The value of the shunt resistor in
        micro-ohms (μΩ).
 
    The NEVB-MTR1-I56-1 comes with a default current gain factor of 50 and
@@ -307,23 +369,23 @@
 
    \todo Calculate and set the register value for the current error threshold.
 
-   \see CURRENT_WARNING_THRESHOLD, CURRENT_FAULT_ENABLE, CURRENT_GAIN,
-   CURRENT_SENSE_RESISTOR
+   \see IBUS_WARNING_THRESHOLD, IBUS_FAULT_ENABLE, IBUS_GAIN,
+   IBUS_SENSE_RESISTOR
 */
-#define CURRENT_ERROR_THRESHOLD 614
+#define IBUS_ERROR_THRESHOLD 614
 
 /*!
-   \brief Current Fault Enable
+   \brief Hi-side Current (IBUS) Fault Enable
 
-   This macro sets if any action is taken if \ref CURRENT_ERROR_THRESHOLD is
+   This macro sets if any action is taken if \ref IBUS_ERROR_THRESHOLD is
    exceeded.
 
    \note This does not affect fault reporting for \ref
-   CURRENT_WARNING_THRESHOLD.
+   IBUS_WARNING_THRESHOLD.
 
-   \see CURRENT_ERROR_THRESHOLD
+   \see IBUS_ERROR_THRESHOLD
 */
-#define CURRENT_FAULT_ENABLE FALSE
+#define IBUS_FAULT_ENABLE FALSE
 
 /*!
    \brief Speed Control Method
@@ -510,7 +572,7 @@
 
    \see VBUS_RTOP, vbusVref
 */
-#define VBUS_RBOTTOM 62
+#define VBUS_RBOTTOM 6200
 
 /*!
    \brief Set the remote debug mode.
@@ -597,21 +659,29 @@
 //! measurement.
 #define ADC_MUX_H_SPEED ADC_MUX_H_ADC4
 //! Lower analog channel selection bits (MUX4:0) for motor current measurement.
-#define ADC_MUX_L_CURRENT ADC_MUX_L_ADC7
+#define ADC_MUX_L_IBUS ADC_MUX_L_ADC5
 //! High analog channel selection bit (MUX5) for for motor current measurement.
-#define ADC_MUX_H_CURRENT ADC_MUX_H_ADC7
+#define ADC_MUX_H_IBUS ADC_MUX_H_ADC5
+//! Lower analog channel selection bits (MUX4:0) for motor current measurement.
+#define ADC_MUX_L_IPHASE_U ADC_MUX_L_ADC1
+//! High analog channel selection bit (MUX5) for for motor current measurement.
+#define ADC_MUX_H_IPHASE_U ADC_MUX_H_ADC1
+//! Lower analog channel selection bits (MUX4:0) for motor current measurement.
+#define ADC_MUX_L_IPHASE_V ADC_MUX_L_ADC7
+//! High analog channel selection bit (MUX5) for for motor current measurement.
+#define ADC_MUX_H_IPHASE_V ADC_MUX_H_ADC7
+//! Lower analog channel selection bits (MUX4:0) for motor current measurement.
+#define ADC_MUX_L_IPHASE_W ADC_MUX_L_ADC0
+//! High analog channel selection bit (MUX5) for for motor current measurement.
+#define ADC_MUX_H_IPHASE_W ADC_MUX_H_ADC0
 //! Lower analog channel selection bits (MUX4:0) for motor vbusVref measurement.
-#define ADC_MUX_L_GATEVREF ADC_MUX_L_ADC6
+#define ADC_MUX_L_VBUSVREF ADC_MUX_L_ADC6
 //! High analog channel selection bit (MUX5) for for motor vbusVref measurement.
-#define ADC_MUX_H_GATEVREF ADC_MUX_H_ADC6
-//! Lower analog channel selection bits (MUX4:0) for motor bref measurement.
-#define ADC_MUX_L_BREF ADC_MUX_L_ADC0
-//! High analog channel selection bit (MUX5) for for motor bref measurement.
-#define ADC_MUX_H_BREF ADC_MUX_H_ADC0
+#define ADC_MUX_H_VBUSVREF ADC_MUX_H_ADC6
 
 // ADC configurations
 //! ADC clock pre-scaler used in this application.
-#define ADC_PRESCALER ADC_PRESCALER_DIV_8
+#define ADC_PRESCALER ADC_PRESCALER_DIV_128
 //! ADC voltage reference used in this application.
 #define ADC_REFERENCE_VOLTAGE ADC_REFERENCE_VOLTAGE_VCC
 //! ADC trigger used in this application.
@@ -1166,13 +1236,13 @@ Divide by frequency to get duration.
    - Easily set a duty cycle or speed based on choice of speed control.
 
    \section current_monitor Current Monitor
-   - Adjustable current gain factor (\ref CURRENT_GAIN).
+   - Adjustable current gain factor (\ref IBUS_GAIN).
    - Configuration of the resistance value of the current sense resistor (\ref
-     CURRENT_SENSE_RESISTOR).
+     IBUS_SENSE_RESISTOR).
    - Threshold values for current warning and error conditions (\ref
-     CURRENT_WARNING_THRESHOLD, \ref CURRENT_ERROR_THRESHOLD).
+     IBUS_WARNING_THRESHOLD, \ref IBUS_ERROR_THRESHOLD).
    - Option to enable or disable action when the current error threshold is
-     exceeded (\ref CURRENT_FAULT_ENABLE).
+     exceeded (\ref IBUS_FAULT_ENABLE).
 
    \section speed_control Speed Control
    - Selection between open-loop and closed-loop speed control (\ref
@@ -1257,7 +1327,7 @@ Divide by frequency to get duration.
   \subsection quickstartchanges1 Making configuration changes
 
   Making simple configuration changes can be done by changing the \ref
-  UserSettable in the motor header file, \ref main.h. These are also summarized
+  UserSettable in the motor header file, \ref config.h. These are also summarized
   in the \ref todo section.
 
   \subsection quickstartchanges2 Making code changes

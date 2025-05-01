@@ -4,9 +4,9 @@
 </picture>
 
 -----------------
-# NEVC-MTR1-t01: Trapezoidal control of brushless DC (BLDC) motors using hall effect sensors firmware for  
+# NEVC-MTR1-t01: Trapezoidal control of brushless DC (BLDC) motors using hall effect sensors firmware for NEVB-MTR1 series evaluation kit 
 
-![Version](https://img.shields.io/badge/Version-1.0.0-blue) [![License - MIT/X Consortium](https://img.shields.io/badge/License-MIT%2FX%20Consortium-green)](https://github.com/Nexperia/NEVC-MCTRL-100-t01/blob/main/LICENSE)
+![Version](https://img.shields.io/badge/Version-1.0.0-blue) [![License - MIT/X Consortium](https://img.shields.io/badge/License-MIT%2FX%20Consortium-green)](https://github.com/Nexperia/NEVB-MTR1-t01/blob/main/LICENSE)
 
 ## Introduction
 
@@ -39,17 +39,6 @@ To adapt and utilize this code for specific requirements, please review the
 modifications to tailor the software to individual needs. The default settings
 in the code are optimized for the motor included in the kit, ensuring a smooth
 start-up and operation for new users.
-
-## Dependencies
-
-The code is dependent on [SCPI Parser Arduino
-Library](https://github.com/sfeister/scpi-parser-arduino) which is a port by
-Scott Feister to the Arduino platform of the [SCPI Parser Library
-v2](https://github.com/sfeister/scpi-parser-arduino) by Jan Breuer. This
-dependency is provided in the source code underneath the `main/src/` directory
-accompanied with its own license (BSD 2-Clause License). Please read through the
-LICENSE file in the dependency directory for more information. The library has
-also been modified to specifically support the needs of this project.
 
 ## Documentation 
 

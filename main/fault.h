@@ -35,7 +35,7 @@
 #include "stdint.h"
 
 // Include motor header
-#include "main.h"
+#include "config.h"
 
 // Function prototypes
 void EnableOverCurrentLED(void);

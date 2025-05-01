@@ -5,16 +5,14 @@
         SCPI implementation header file.
 
    \details
-        This file contains all the defines for configurations and function prototypes
-        related to the SCPI implementation.
+        This file contains the command definitions for the SCPI parser to recognize and
+        execute.
 
-        This file depends on the base [SCPI parser library v2](https://github.com/j123b567/scpi-parser)
-        (commit #[4e87990](https://github.com/j123b567/scpi-parser/tree/4e879901b51cbb43dab36dd83f95a23f1dbaa4c0))
-        by Jan Breuer which was then ported by Scott Feister to the Arduino IDE,
-        [SCPI Parser Arduino Library](https://github.com/sfeister/scpi-parser-arduino).
+        Most of this code was originally written by Diego González Chávez as part of the
+        [Vrekrer SCPI Parser](https://github.com/Vrekrer/Vrekrer_scpi_parser) project.
 
-        Further modifications were made to the base library to allow for memory
-        optimisation and support for the avr-gcc compiler.
+        It has been merged into the main codebase for customization and linking limitations
+        of the Arduino IDE.
 
    \author
         Nexperia: http://www.nexperia.com
@@ -23,67 +21,81 @@
         For additional support, visit: https://www.nexperia.com/support
 
    $Author: Aanas Sayed $
-   $Date: 2024/03/08 $  \n
+   $Date: 2025/04/21 $  \n
 
  ******************************************************************************/
 
-#ifndef __SCPI_H_
-#define __SCPI_H_
+#ifndef _SCPI_H_
+#define _SCPI_H_
 
-//! Define macro for ATmega32U4 micro controller
-#define __AVR_ATmega32U4__ 1
+#include "scpi_config.h"
+#include "scpi_helper.h"
 
-// Include libraries
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include "src/SCPI_Parser/SCPI_Parser.h"
-#include <Arduino.h>
-#include <avr/io.h>
-#include "main.h"
+#define MOTOR_DIRECTION_OPTIONS 2
+/*! \brief Number of motor direction options. */
+extern const SCPI_choice_def_t motorDirections[MOTOR_DIRECTION_OPTIONS];
+/*! \brief Motor direction options array. */
+#define INPUT_SOURCE_OPTIONS 2
+/*! \brief Number of speed input source options. */
+extern const SCPI_choice_def_t inputSources[INPUT_SOURCE_OPTIONS];
+/*! \brief Speed input source options array. */
 
-//! The SCPI input buffer length or the maximum characters allowed at for a
-//! single command.
-#define SCPI_INPUT_BUFFER_LENGTH 64
-
-//! The SCPI error queue size or the maximum number of error retained in memory.
-#define SCPI_ERROR_QUEUE_SIZE 4
-
-//! The manufacturer's name for the identification SCPI query.
-#define SCPI_IDN1 "NEXPERIA"
-//! The device's model number for the identification SCPI query.
-#define SCPI_IDN2 "NEVB-MTR1-xx"
-//! The device's serial number for the identification SCPI query.
-#define SCPI_IDN3 NULL
-//! The software verion for the identification SCPI query.
-#define SCPI_IDN4 "NEVC-MTR1-t01-1.0.0"
-
-// External variable declarations
-extern const scpi_command_t scpi_commands[];
-extern scpi_interface_t scpi_interface;
-extern char scpi_input_buffer[];
-extern scpi_error_t scpi_error_queue_data[];
-extern scpi_t scpi_context;
-extern volatile motorconfigs_t motorConfigs;
+/** @cond DOXYGEN_IGNORE */
+// External prototypes and (defined in main.cpp or another relevant file)
+extern void TimersInit(void);
+extern void ConfigsInit(void);
 extern volatile motorflags_t motorFlags;
+extern volatile motorconfigs_t motorConfigs;
 extern volatile faultflags_t faultFlags;
 extern volatile uint16_t lastCommutationTicks;
-extern volatile uint16_t current;
+extern volatile uint16_t ibus;
+extern volatile int16_t iphaseU;
+extern volatile int16_t iphaseV;
+extern volatile int16_t iphaseW;
 extern volatile uint16_t vbusVref;
 extern volatile uint8_t speedInput;
+/** @endcond */
 
-// External prototypes
-//! Initializes and synchronizes Timers.
-extern void TimersInit(void);
-//! Initializes motorConfigs.
-extern void ConfigsInit(void);
+// SCPI Parser Instance
+extern SCPI_Parser scpiParser;
 
-// Function prototypes
-size_t SCPI_Write(scpi_t *context, const char *data, size_t len);
-int SCPI_Error(scpi_t *context, int_fast16_t err);
-scpi_result_t SCPI_Control(scpi_t *context, scpi_ctrl_name_t ctrl, scpi_reg_val_t val);
-scpi_result_t SCPI_Reset(scpi_t *context);
-scpi_result_t SCPI_Flush(scpi_t *context);
+// Function Prototypes
+void ScpiInit(void);
+void ScpiInput(Stream &interface);
+
+// Static Function Prototypes for SCPI Commands
+static void ScpiCoreIdnQ(SCPI_C commands, SCPI_P parameters, Stream &interface);
+static void ScpiSystemErrorCountQ(SCPI_C commands, SCPI_P parameters, Stream &interface);
+static void ScpiSystemErrorNextQ(SCPI_C commands, SCPI_P parameters, Stream &interface);
+static void GetMotorEnable(SCPI_C commands, SCPI_P parameters, Stream &interface);
+static void ConfigureMotorEnable(SCPI_C commands, SCPI_P parameters, Stream &interface);
+
+#if (SPEED_CONTROL_METHOD == SPEED_CONTROL_OPEN_LOOP)
+static void ConfigureMotorDutyCycleSource(SCPI_C commands, SCPI_P parameters, Stream &interface);
+static void GetConfigureMotorDutyCycleSource(SCPI_C commands, SCPI_P parameters, Stream &interface);
+static void ConfigureMotorDutyCycle(SCPI_C commands, SCPI_P parameters, Stream &interface);
+#elif (SPEED_CONTROL_METHOD == SPEED_CONTROL_CLOSED_LOOP)
+// Assuming scpi_result_t is the return type expected by the parser for commands
+// with context (though this example doesn't use it)
+// If Vrekrer_scpi_parser.h defines SCPI_C/P differently for context-based commands,
+// adjust accordingly. For now, keeping it consistent with other commands.
+static void ConfigureMotorSpeedSource(SCPI_C commands, SCPI_P parameters, Stream &interface);
+static void GetMotorSpeedSource(SCPI_C commands, SCPI_P parameters, Stream &interface);
+static void ConfigureMotorSpeed(SCPI_C commands, SCPI_P parameters, Stream &interface);
+#endif
+
+static void ConfigureMotorFrequency(SCPI_C commands, SCPI_P parameters, Stream &interface);
+static void GetConfigureMotorFrequency(SCPI_C commands, SCPI_P parameters, Stream &interface);
+static void ConfigureMotorDirection(SCPI_C commands, SCPI_P parameters, Stream &interface);
+static void GetConfigureMotorDirection(SCPI_C commands, SCPI_P parameters, Stream &interface);
+static void MeasureMotorSpeed(SCPI_C commands, SCPI_P parameters, Stream &interface);
+static void MeasureMotorCurrentVBus(SCPI_C commands, SCPI_P parameters, Stream &interface);
+static void MeasureMotorCurrentPhaseU(SCPI_C commands, SCPI_P parameters, Stream &interface);
+static void MeasureMotorCurrentPhaseV(SCPI_C commands, SCPI_P parameters, Stream &interface);
+static void MeasureMotorCurrentPhaseW(SCPI_C commands, SCPI_P parameters, Stream &interface);
+static void MeasureMotorDirection(SCPI_C commands, SCPI_P parameters, Stream &interface);
+static void MeasureMotorVoltage(SCPI_C commands, SCPI_P parameters, Stream &interface);
+static void MeasureGateDutyCycle(SCPI_C commands, SCPI_P parameters, Stream &interface);
 
 /*!  \page scpi SCPI
 
@@ -148,7 +160,7 @@ scpi_result_t SCPI_Flush(scpi_t *context);
 
      - \b Queries: Request data or status from the instrument (e.g., `*IDN?`).
      - \b Settings: Configure the instrument or execute actions (e.g.,
-       `CONFigure:MOTOr:ENABle`).
+       `CONFigure:ENABle`).
 
      \subsection scpi_quick_guide_syntax Syntax and Conventions
 
@@ -164,14 +176,14 @@ scpi_result_t SCPI_Flush(scpi_t *context);
      From the command set documentation, you can deduce both the short and long
      forms of SCPI commands by examining the case used in the command syntax.
 
-     For instance, take the command `CONFigure:MOTOr:ENABle`. The way it's
+     For instance, take the command `CONFigure:ENABle`. The way it's
      written provides clues:
 
      - \b Long Form: The long form of the command is exactly as it's presented:
-       `CONFigure:MOTOr:ENABle`. It is the complete, full-length command.
+       `CONFigure:ENABle`. It is the complete, full-length command.
      - \b Short Form: The short form capitalizes only the minimum letters
        required to uniquely identify the command. Thus, for
-       `CONFigure:MOTOr:ENABle`, the short form would be `CONF:MOT:ENAB`.
+       `CONFigure:ENABle`, the short form would be `CONF:ENAB`.
 
      This approach to determining short and long forms applies to all SCPI
      commands. The long form is always the full command, while the short form
@@ -185,13 +197,13 @@ scpi_result_t SCPI_Flush(scpi_t *context);
      can be abbreviated to the shortest unique string:
 
      - Query the device identification: `*IDN?`
-     - Set the motor direction: `CONFigure:MOTOr:DIREction FORWard`
+     - Set the motor direction: `CONFigure:DIREction FORWard`
      - Measure voltage: `MEASure:VOLTage:DC?`
      - Enable motor:
-          - Standard command: `CONFigure:MOTOr:ENABle ON`
-          - Mixed case: `conFigure:motOR:enabLE ON`
-          - Abbreviated command: `CONF:MOT:ENAB ON`
-          - Mixed case with abbreviation: `Conf:Mot:Enab ON`
+          - Standard command: `CONFigure:ENABle ON`
+          - Mixed case: `conFigure:enabLE ON`
+          - Abbreviated command: `CONF:ENAB ON`
+          - Mixed case with abbreviation: `Conf:Enab ON`
 
      SCPI's flexibility with command syntax makes it user-friendly and adaptable
      to various styles of interaction.
@@ -262,9 +274,7 @@ scpi_result_t SCPI_Flush(scpi_t *context);
 
      | Command | Description | Parameters | Return Value |
      |---------|-------------|------------|--------------|
-     | `*CLS`  | Clears the event status register and error queue. | None. | None. |
      | `*IDN?` | Queries the identification string of the instrument. | None. | The identification string. |
-     | `*RST`  | Resets the instrument to its power-on state. | None. | None. |
 
      \subsection scpi_commands_required Required SCPI Commands
 
@@ -275,7 +285,7 @@ scpi_result_t SCPI_Flush(scpi_t *context);
 
      | Command                   | Description                                 | Parameters | Return Value                                   |
      |---------------------------|---------------------------------------------|------------|------------------------------------------------|
-     | `SYSTem:ERRor[:NEXT]?`    | Retrieves the next error from the error queue. | None.     | The next error message or `0, "No error"` if none. |
+     | `SYSTem:ERRor?`    | Retrieves the next error from the error queue. | None.     | The next error message or `0, "No error"` if none. |
      | `SYSTem:ERRor:COUNt?`     | Queries the count of errors in the error queue. | None.    | The number of errors in the queue.              |
 
      \subsection scpi_commands_motor Motor Control Commands
@@ -284,34 +294,32 @@ scpi_result_t SCPI_Flush(scpi_t *context);
 
      | Command                                   | Description                                  | Parameters                                                      | Return Value                                                    |
      |-------------------------------------------|----------------------------------------------|-----------------------------------------------------------------|-----------------------------------------------------------------|
-     | `CONFigure:MOTOr:ENABle`                  | Configures the motor enable state.           | Boolean (`ON` or `1` to enable, `OFF` or `0` to disable).       | None or error code and message if incorrect parameter.          |
-     | `CONFigure:MOTOr:ENABle?`                 | Queries the motor enable state.              | None.                                                           | Boolean state of the motor (`1` if enabled or `0` if disabled). |
-     | `CONFigure:MOTOr:GATE:FREQuency`          | Sets the gate drive frequency for the motor. | Frequency value in Hertz (Hz). Minimum `7183` Hz, maximum `100000` Hz. | None or error code and message if the frequency is out of range. |
-     | `CONFigure:MOTOr:GATE:FREQuency?`         | Queries the gate drive frequency.            | None.                                                           | Current gate drive frequency in Hertz (Hz).                     |
-     | `CONFigure:MOTOr:GATE:DEADtime`           | Sets the gate dead time for the motor.       | Dead time value in nanoseconds (ns). Min `350` ns, max `1750` ns.   | None or error code and message if the dead time is out of range. |
-     | `CONFigure:MOTOr:GATE:DEADtime?`          | Queries the gate dead time.                  | None.                                                           | Current gate dead time in nanoseconds (ns).                     |
-     | `CONFigure:MOTOr:DIREction`               | Sets the motor direction.                    | Direction value (`FORWard` or `REVErse`).                      | None or error code and message if incorrect parameter.          |
-     | `CONFigure:MOTOr:DIREction?`              | Queries the motor direction.                 | None.                                                           | The configured motor direction as a string (`FORWard` or `REVErse`). |
-     | `MEASure:MOTOr:SPEEd?`                    | Measures the motor speed.                    | None.                                                           | Motor speed in revolutions per minute (RPM).                    |
-     | `MEASure:MOTOr:CURRent?`                  | Measures the motor current.                  | None.                                                           | Motor current in Amperes (A).                                   |
-     | `MEASure:MOTOr:DIREction?`                | Measures the motor direction.                | None.                                                           | The motor direction as a string (`FORWard`, `REVErse` or `UNKNown`). |
-     | `MEASure:MOTOr:GATE:VOLTage?`             | Measures the gate voltage.                   | None.                                                           | Gate voltage in Volts (V).                                      |
+     | `CONFigure:ENABle`                  | Configures the motor enable state.           | Boolean (`ON` or `1` to enable, `OFF` or `0` to disable).       | None or error code and message if incorrect parameter.          |
+     | `CONFigure:ENABle?`                 | Queries the motor enable state.              | None.                                                           | Boolean state of the motor (`1` if enabled or `0` if disabled). |
+     | `CONFigure:FREQuency`          | Sets the gate drive frequency for the motor. | Frequency value in Hertz (Hz). Minimum `7183` Hz, maximum `100000` Hz. | None or error code and message if the frequency is out of range. |
+     | `CONFigure:FREQuency?`         | Queries the gate drive frequency.            | None.                                                           | Current gate drive frequency in Hertz (Hz).                     |
+     | `CONFigure:DIREction`               | Sets the motor direction.                    | Direction value (`FORWard` or `REVErse`).                      | None or error code and message if incorrect parameter.          |
+     | `CONFigure:DIREction?`              | Queries the motor direction.                 | None.                                                           | The configured motor direction as a string (`FORWard` or `REVErse`). |
+     | `MEASure:SPEEd?`                    | Measures the motor speed.                    | None.                                                           | Motor speed in revolutions per minute (RPM).                    |
+     | `MEASure:CURRent?`                  | Measures the motor current.                  | None.                                                           | Motor current in Amperes (A).                                   |
+     | `MEASure:DIREction?`                | Measures the motor direction.                | None.                                                           | The motor direction as a string (`FORWard`, `REVErse` or `UNKNown`). |
+     | `MEASure:VOLTage?`             | Measures the gate voltage.                   | None.                                                           | Gate voltage in Volts (V).                                      |
 
      These commands are only available when \ref SPEED_CONTROL_METHOD is \ref
      SPEED_CONTROL_OPEN_LOOP.
 
      | Command                                   | Description                                  | Parameters                                                      | Return Value                                                    |
      |-------------------------------------------|----------------------------------------------|-----------------------------------------------------------------|-----------------------------------------------------------------|
-     | `CONFigure:MOTOr:GATE:DUTYcycle:SOURce`   | Sets the duty cycle source for the motor.    | `0` for local (speed input pin) and `1` for remote.             | None or error code and message if incorrect parameter.          |
-     | `CONFigure:MOTOr:GATE:DUTYcycle`          | Sets the duty cycle for the motor.           | Duty cycle in percentage (%). Minimum 0.0 %, maximum 100.0 %    | None or error code and message if incorrect parameter.          |
+     | `CONFigure:DUTYcycle:SOURce`   | Sets the duty cycle source for the motor.    | `0` for local (speed input pin) and `1` for remote.             | None or error code and message if incorrect parameter.          |
+     | `CONFigure:DUTYcycle`          | Sets the duty cycle for the motor.           | Duty cycle in percentage (%). Minimum 0.0 %, maximum 100.0 %    | None or error code and message if incorrect parameter.          |
 
      These commands are only available when \ref SPEED_CONTROL_METHOD is \ref
      SPEED_CONTROL_CLOSED_LOOP.
 
      | Command                          | Description                             | Parameters                                                      | Return Value                                                    |
      |----------------------------------|-----------------------------------------|-----------------------------------------------------------------|-----------------------------------------------------------------|
-     | `CONFigure:MOTOr:SPEEd:SOURce`   | Sets the speed source for the motor.    | `0` for local (speed input pin) and `1` for remote.             | None or error code and message if incorrect parameter.          |
-     | `CONFigure:MOTOr:SPEEd`          | Sets the speed for the motor.           | Speed in revolutions per minute (RPM). Minimum 0 RPM, maximum \ref SPEED_CONTROLLER_MAX_SPEED | None or error code and message if incorrect parameter. |
+     | `CONFigure:SPEEd:SOURce`   | Sets the speed source for the motor.    | `0` for local (speed input pin) and `1` for remote.             | None or error code and message if incorrect parameter.          |
+     | `CONFigure:SPEEd`          | Sets the speed for the motor.           | Speed in revolutions per minute (RPM). Minimum 0 RPM, maximum \ref SPEED_CONTROLLER_MAX_SPEED | None or error code and message if incorrect parameter. |
 
      \subsection scpi_commands_conclusion Conclusion
 
@@ -325,4 +333,4 @@ scpi_result_t SCPI_Flush(scpi_t *context);
      is preferred not to concatenate commands using a semicolon (`;`).
 */
 
-#endif /* __SCPI_H_ */
+#endif // _SCPI_H_
