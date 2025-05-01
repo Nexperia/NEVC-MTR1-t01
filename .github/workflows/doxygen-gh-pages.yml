@@ -31,7 +31,7 @@ jobs:
       - name: Download Doxygen
         run: |
           mkdir -p doxygen
-          curl -L https://www.doxygen.nl/files/doxygen-1.13.2.src.tar.gzact -o doxygen/doxygen.tar.gz
+          curl -L https://github.com/doxygen/doxygen/releases/download/Release_1_13_2/doxygen-1.13.2.linux.bin.tar.gz -o doxygen/doxygen.tar.gz
 
       - name: Extract Doxygen
         run: |
