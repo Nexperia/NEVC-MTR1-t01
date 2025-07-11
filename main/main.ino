@@ -1251,6 +1251,8 @@ ISR(INT2_vect)
    This interrupt service routine is trigger on Timer4 overflow. It manages the
    commutation ticks, which determines motor status. It also controls the
    execution of the speed regulation loop at constant intervals.
+
+   \see TimersInit(), TIM4_FREQ
 */
 ISR(TIMER4_OVF_vect)
 {
@@ -1294,7 +1296,7 @@ ISR(TIMER4_OVF_vect)
 
    \note This ISR is only active when hall emulation is enabled.
 
-   \see EMULATE_HALL
+   \see EMULATE_HALL, TimersInit()
 */
 ISR(TIMER3_OVF_vect)
 {
