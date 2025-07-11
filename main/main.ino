@@ -41,19 +41,23 @@
 
 /*! \brief Motor control flags placed in I/O space for fast access.
 
-    This variable contains all the flags used for motor control. It is placed in
-    GPIOR0 register, which allows usage of several fast bit manipulation/branch
+    This variable contains all the flags used for motor control. It is placed in GPIOR1
+    and GPIOR2 registers, which allows usage of several fast bit manipulation/branch
     instructions.
+
+    \warning This variable can only have a maximum size of 2 bytes.
 */
-volatile motorflags_t motorFlags FAST_ACCESS(0x3E);
+volatile motorflags_t motorFlags FAST_ACCESS(0x4A);
 
 /*! \brief Fault flags placed in I/O space for fast access.
 
-    This variable contains all the flags used for faults. It is placed in GPIOR1
+    This variable contains all the flags used for faults. It is placed in GPIOR0
     register, which allows usage of several fast bit manipulation/branch
     instructions.
+
+    \warning This variable can only have a maximum size of 1 byte.
 */
-volatile faultflags_t faultFlags FAST_ACCESS(0x4A);
+volatile faultflags_t faultFlags FAST_ACCESS(0x3E);
 
 /*! \brief Motor Configs.
 

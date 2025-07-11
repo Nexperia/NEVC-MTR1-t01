@@ -1048,6 +1048,8 @@
 */
 typedef struct motorflags
 {
+   //! Reserved bit(s).
+   uint8_t reserved : 8;
    //! Should speed controller run?
    uint8_t speedControllerRun : 1;
    //! Is the remote enabled?
@@ -1060,6 +1062,7 @@ typedef struct motorflags
    uint8_t desiredDirection : 1;
    //! The current waveform that should be produced.
    uint8_t driveWaveform : 2;
+   // Reserved bit(s).
 } motorflags_t;
 
 /*! \brief Collection of all fault flags.
