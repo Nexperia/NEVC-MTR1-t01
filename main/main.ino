@@ -875,41 +875,6 @@ static FORCE_INLINE void TimersWaitForNextPWMCycle(void)
   }
 }
 
-/*! \brief Retrieve the intended motor direction.
-
-    This function provides the current intended direction for the motor.
-
-    \note The direction input is not directly read at this point. Instead, a
-    separate pin change interrupt is responsible for monitoring the input.
-
-    \retval DIRECTION_FORWARD Forward direction is the intended direction.
-    \retval DIRECTION_REVERSE Reverse direction is the intended direction.
-*/
-static FORCE_INLINE uint8_t GetDesiredDirection(void)
-{
-  return (uint8_t)motorFlags.desiredDirection;
-}
-
-/*! \brief Retrieve the current motor direction.
-
-    This function returns the current operating direction of the motor.
-
-    \note To accurately determine the direction, two consecutive hall sensor
-    changes in the same direction are required.
-
-    \return The current motor direction.
-
-    \retval DIRECTION_FORWARD Motor is currently running forward. \retval
-    DIRECTION_REVERSE Motor is currently running in reverse. \retval
-    DIRECTION_UNKNOWN The current motor direction cannot be determined, which
-    may indicate the motor is stopped, changing direction, or that the hall
-    sensors are providing incorrect information.
-*/
-static FORCE_INLINE uint8_t GetActualDirection(void)
-{
-  return motorFlags.actualDirection;
-}
-
 /*! \brief Perform block commutation based on direction and hall sensor input
 
     This function performs block commutation according to the specified
@@ -1028,7 +993,7 @@ static FORCE_INLINE void ActualDirectionUpdate(uint8_t lastHall, const uint8_t n
 */
 static FORCE_INLINE void ReverseRotationSignalUpdate(void)
 {
-  if (GetActualDirection() == GetDesiredDirection())
+  if (motorFlags.actualDirection == motorFlags.desiredDirection)
   {
     faultFlags.reverseDirection = FALSE;
   }
@@ -1119,7 +1084,7 @@ static FORCE_INLINE void CommutationTicksUpdate(void)
       PIDResetIntegrator(&pidParameters);
 #endif
       TimersSetModeBlockCommutation();
-      BlockCommutate(GetDesiredDirection(), GetHall());
+      BlockCommutate(motorFlags.desiredDirection, GetHall());
     }
     // If the motor is supposed to be stopped, (and it has stopped now) ...
     else if (motorFlags.enable == FALSE)
@@ -1164,7 +1129,7 @@ ISR(PCINT0_vect)
 
   if (motorFlags.driveWaveform == WAVEFORM_BLOCK_COMMUTATION)
   {
-    BlockCommutate(GetDesiredDirection(), hall);
+    BlockCommutate(motorFlags.desiredDirection, hall);
   }
 
   // Update flags that depend on hall sensor value.
@@ -1269,7 +1234,7 @@ ISR(TIMER3_OVF_vect)
   {
     uint8_t hall = GetHall();
 
-    if (GetDesiredDirection() == DIRECTION_FORWARD)
+    if (motorFlags.desiredDirection == DIRECTION_FORWARD)
     {
       PORTB = (PORTB & ~((1 << H1_PIN) | (1 << H2_PIN) | (1 << H3_PIN))) | ((0x07 & pgm_read_byte_near(&expectedHallSequenceForward[hall])) << H1_PIN);
     }
