@@ -223,7 +223,7 @@
 
    \see TURN_OFF_MODE_RAMP, TURN_OFF_MODE_COAST
 */
-#define TURN_OFF_MODE TURN_OFF_MODE_COAST
+#define TURN_OFF_MODE TURN_OFF_MODE_RAMP
 
 /*!
    \brief In-line Phase Current Gain for Current Measurement

@@ -655,17 +655,35 @@ static void EnableUpdate(void)
   }
   else
   {
-    motorFlags.enable = FALSE;
+    DisableMotor();
+  }
+}
+
+/*! \brief Disable motor
+
+    This function disables the motor by clearing the enable flag and performing
+    specific actions based on the \ref TURN_OFF_MODE configuration:
+    - If \ref TURN_OFF_MODE is set to \ref TURN_OFF_MODE_COAST, it disables
+      driver signals, allowing the motor to coast.
+    - If \ref TURN_OFF_MODE is set to \ref TURN_OFF_MODE_RAMP, it sets the
+      motor to ramp down before disabling driver signals.
+
+    \note The behavior of this function depends on the \ref TURN_OFF_MODE
+    configuration.
+
+    \see TURN_OFF_MODE
+*/
+static void DisableMotor(void)
+{
+  motorFlags.enable = FALSE;
+  faultFlags.motorStopped = FALSE;
 
 #if (TURN_OFF_MODE == TURN_OFF_MODE_COAST)
-    // Disable driver signals to let the motor coast.
-    motorFlags.driveWaveform = WAVEFORM_UNDEFINED;
-    DisablePWMOutputs();
-    ClearPWMPorts();
+  // Disable driver signals to let the motor coast.
+  motorFlags.driveWaveform = WAVEFORM_UNDEFINED;
+  DisablePWMOutputs();
+  ClearPWMPorts();
 #endif
-
-    faultFlags.motorStopped = FALSE;
-  }
 }
 
 /*! \brief Check whether the remote pin is set and update flags accordingly.
@@ -1164,16 +1182,8 @@ ISR(INT2_vect)
   // Update desired direction flag.
   DesiredDirectionUpdate();
 
-#if (TURN_OFF_MODE == TURN_OFF_MODE_COAST)
-  // Disable driver signals to let motor coast. The motor will automatically
-  // start once it stopped.
-  motorFlags.driveWaveform = WAVEFORM_UNDEFINED;
-  DisablePWMOutputs();
-  ClearPWMPorts();
-#endif
-
-  motorFlags.enable = FALSE;
-  faultFlags.motorStopped = FALSE;
+  // Stop the motor.
+  DisableMotor();
 }
 
 /*! \brief Timer4 Overflow Event Interrupt Service Routine.
