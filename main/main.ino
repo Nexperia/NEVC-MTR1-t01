@@ -451,8 +451,7 @@ static void PortsInit(void)
     ovwerflow occurs ~977 times per second. The overflow interrupt is used to
     trigger the ADC conversion unless changed by the user.
 
-    \see EMULATE_HALL, TIM3_FREQ, TimersSetModeBlockCommutation(),
-    TimersSetModeBrake()
+    \see EMULATE_HALL, TIM3_FREQ, TimersSetModeBlockCommutation()
 */
 void TimersInit(void)
 {
@@ -640,13 +639,13 @@ static uint16_t ADCSingleConversion(void)
     specific actions based on the \ref TURN_OFF_MODE configuration:
     - If \ref TURN_OFF_MODE is set to \ref TURN_OFF_MODE_COAST, it disables
       driver signals, allowing the motor to coast.
-    - If \ref TURN_OFF_MODE is set to \ref TURN_OFF_MODE_BRAKE, it sets the
-      motor in brake mode.
+    - If \ref TURN_OFF_MODE is set to \ref TURN_OFF_MODE_RAMP, it sets the
+      motor to ramp down before disabling driver signals.
 
     \note The behavior of this function depends on the \ref TURN_OFF_MODE
     configuration.
 
-    \see TURN_OFF_MODE, TimersSetModeBrake()
+    \see TURN_OFF_MODE
 */
 static void EnableUpdate(void)
 {
@@ -663,14 +662,9 @@ static void EnableUpdate(void)
     motorFlags.driveWaveform = WAVEFORM_UNDEFINED;
     DisablePWMOutputs();
     ClearPWMPorts();
-    faultFlags.motorStopped = FALSE;
 #endif
 
-#if (TURN_OFF_MODE == TURN_OFF_MODE_BRAKE)
-    // Set the motor in brake mode.
     faultFlags.motorStopped = FALSE;
-    TimersSetModeBrake();
-#endif
   }
 }
 
@@ -761,7 +755,17 @@ static void SpeedController(void)
   }
   else
   {
-    speedOutput = 0;
+    if (speedOutput > 0)
+    {
+      if (speedOutput > SPEED_CONTROLLER_MAX_DELTA)
+      {
+        speedOutput -= SPEED_CONTROLLER_MAX_DELTA;
+      }
+      else
+      {
+        speedOutput = 0;
+      }
+    }
   }
 }
 
@@ -854,52 +858,6 @@ static FORCE_INLINE void TimersSetModeBlockCommutation(void)
   // Change PWM pins to output again to allow PWM control.
   EnablePWMOutputs();
 }
-
-#if (TURN_OFF_MODE == TURN_OFF_MODE_BRAKE)
-/*! \brief Configures timers for braking and starts braking.
-
-    This function configures the timers for braking and starts braking. Please
-    note that braking when turning can produce too much heat for the MOSFETs to
-    handle. Use with care!
-
-    When called, this function sets the PWM pins to input (High-Z) while
-    changing modes. It then configures the timer and sets a 50% duty cycle for
-    braking. Both the high side and the low side gates are set to output the PWM
-    signal. It waits for the next PWM cycle to ensure that all outputs are
-    updated, sets the motor drive waveform to braking, and changes the PWM pins
-    back to output mode to allow PWM control.
-
-    \note This function is conditional and depends on the \ref TURN_OFF_MODE
-    configuration.
-
-    \see TURN_OFF_MODE
-*/
-static FORCE_INLINE void TimersSetModeBrake(void)
-{
-  // Set PWM pins to input (High-Z) while changing modes.
-  DisablePWMOutputs();
-
-  // Sets up timers.
-  TCCR4A = (0 << COM4A1) | (1 << COM4A0) | (0 << COM4B1) | (1 << COM4B0) | (1 << PWM4A) | (1 << PWM4B);
-  TCCR4C |= (0 << COM4D1) | (1 << COM4D0) | (1 << PWM4D);
-  TCCR4D = (1 << WGM41) | (1 << WGM40);
-
-  // Set to 50% duty
-  SetDuty((uint16_t)511);
-
-  // PWM outputs on both high side and low side gates are turned enabled
-  // (complementary)
-  TCCR4E &= ~0b00111111;
-  TCCR4E |= OC_ENABLE_PORTB | OC_ENABLE_PORTC | OC_ENABLE_PORTD;
-
-  // Wait for the next PWM cycle to ensure that all outputs are updated.
-  TimersWaitForNextPWMCycle();
-
-  motorFlags.driveWaveform = WAVEFORM_BRAKING;
-
-  EnablePWMOutputs();
-}
-#endif
 
 /*! \brief Wait for the start of the next PWM cycle.
 
@@ -1017,7 +975,11 @@ static FORCE_INLINE uint8_t GetHall(void)
 */
 static FORCE_INLINE void DesiredDirectionUpdate(void)
 {
-  if ((PIND & (1 << DIRECTION_COMMAND_PIN)) != 0)
+  if (motorFlags.enable == TRUE)
+  {
+    return;
+  }
+  else if ((PIND & (1 << DIRECTION_COMMAND_PIN)) != 0)
   {
     motorFlags.desiredDirection = DIRECTION_REVERSE;
   }
@@ -1132,12 +1094,15 @@ static FORCE_INLINE void ClearPWMPorts(void)
 */
 static FORCE_INLINE void CommutationTicksUpdate(void)
 {
+  // If the motor is not stopped, increment the tick counter.
   if (commutationTicks < COMMUTATION_TICKS_STOPPED)
   {
     commutationTicks++;
   }
+  // If motor is stopped, set the stopped flag and clear the tick counter.
   else
   {
+    // Set flags to notify that the motor is stopped.
     faultFlags.motorStopped = TRUE;
     lastCommutationTicks = 0xffff;
     uint8_t hall = GetHall();
@@ -1145,6 +1110,8 @@ static FORCE_INLINE void CommutationTicksUpdate(void)
     {
       faultFlags.noHallConnections = TRUE;
     }
+    // If the motor is supposed to be enabled, and the drive method is not block commutation,
+    // reset the speed output and set the drive waveform.
     if (motorFlags.driveWaveform != WAVEFORM_BLOCK_COMMUTATION && motorFlags.enable == TRUE)
     {
       speedOutput = 0;
@@ -1154,14 +1121,19 @@ static FORCE_INLINE void CommutationTicksUpdate(void)
       TimersSetModeBlockCommutation();
       BlockCommutate(GetDesiredDirection(), GetHall());
     }
-#if (TURN_OFF_MODE == TURN_OFF_MODE_BRAKE)
+    // If the motor is supposed to be stopped, (and it has stopped now) ...
     else if (motorFlags.enable == FALSE)
     {
+#if (TURN_OFF_MODE == TURN_OFF_MODE_RAMP)
+      // ... unset the drive waveform and disable PWM outputs.
       motorFlags.driveWaveform = WAVEFORM_UNDEFINED;
       DisablePWMOutputs();
       ClearPWMPorts();
-    }
 #endif
+      // ... update the desired direction flag as this would not have been
+      // updated if the direction was changed while the motor was running.
+      DesiredDirectionUpdate();
+    }
   }
 }
 
@@ -1213,12 +1185,12 @@ ISR(PCINT0_vect)
 /*! \brief Direction input change interrupt service routine.
 
     This interrupt service routine is called every time the direction input pin
-    changes state. The desired direction flag is updated accordingly. The motor
-    control then goes into a state where it needs a stopped motor before any
-    driving of the motor is performed.
+    changes state. The motor is stopped and the desired direction flag is
+    updated accordingly. The motor will not start again until the enable pin is
+    turned on again.
 
     \note Depending on the \ref TURN_OFF_MODE configuration, it will either
-    coast or brake.
+    coast or ramp down the motor.
 
     \see TURN_OFF_MODE
 */
@@ -1226,12 +1198,6 @@ ISR(INT2_vect)
 {
   // Update desired direction flag.
   DesiredDirectionUpdate();
-  if (motorFlags.desiredDirection == DIRECTION_FORWARD)
-  {
-  }
-  else if (motorFlags.desiredDirection == DIRECTION_REVERSE)
-  {
-  };
 
 #if (TURN_OFF_MODE == TURN_OFF_MODE_COAST)
   // Disable driver signals to let motor coast. The motor will automatically
@@ -1239,15 +1205,10 @@ ISR(INT2_vect)
   motorFlags.driveWaveform = WAVEFORM_UNDEFINED;
   DisablePWMOutputs();
   ClearPWMPorts();
-  faultFlags.motorStopped = FALSE;
 #endif
 
-#if (TURN_OFF_MODE == TURN_OFF_MODE_BRAKE)
-  // Set motor in brake mode. The motor will automatically start once it is
-  // stopped.
+  motorFlags.enable = FALSE;
   faultFlags.motorStopped = FALSE;
-  TimersSetModeBrake(); // Automatically sets driveWaveform.
-#endif
 }
 
 /*! \brief Timer4 Overflow Event Interrupt Service Routine.
