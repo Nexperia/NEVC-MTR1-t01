@@ -383,7 +383,7 @@
 
    \see IBUS_ERROR_THRESHOLD
 */
-#define IBUS_FAULT_ENABLE FALSE
+#define IBUS_FAULT_ENABLE TRUE
 
 /*!
    \brief Speed Control Method
@@ -1044,7 +1044,7 @@
 typedef struct motorflags
 {
    //! Reserved bit(s).
-   uint8_t reserved : 8;
+   uint8_t reserved : 7;
    //! Should speed controller run?
    uint8_t speedControllerRun : 1;
    //! Is the remote enabled?
@@ -1057,6 +1057,8 @@ typedef struct motorflags
    uint8_t desiredDirection : 1;
    //! The current waveform that should be produced.
    uint8_t driveWaveform : 2;
+   //! Fatal fault
+   uint8_t fatalFault : 1;
 } motorflags_t;
 
 /*! \brief Collection of all fault flags.
@@ -1082,6 +1084,20 @@ typedef struct faultflags
    //! Is user flag 3 set?
    uint8_t userFlag3 : 1;
 } faultflags_t;
+
+/*! \brief Enumeration of fault flags.
+ */
+typedef enum
+{
+   FAULT_RESERVED,
+   FAULT_REVERSE_DIRECTION,
+   FAULT_MOTOR_STOPPED,
+   FAULT_OVER_CURRENT,
+   FAULT_NO_HALL_CONNECTIONS,
+   FAULT_USER_FLAG1,
+   FAULT_USER_FLAG2,
+   FAULT_USER_FLAG3
+} fault_flag_t;
 
 /*! \brief Collection of motor configurations.
 

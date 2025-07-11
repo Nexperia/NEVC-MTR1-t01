@@ -174,9 +174,10 @@ void SweepLEDsBlocking(void)
    current fault flag conditions.
 
    \param faultFlags A pointer to the volatile faultflags_t structure containing
-                     the fault flags to be checked. \param motorFlags A pointer
-                     to the volatile motorflags_t structure containing motor
-                     control flags (e.g., motor enable status).
+                    the fault flags to be checked.
+    \param motorFlags A pointer
+                    to the volatile motorflags_t structure containing motor
+                    control flags (e.g., motor enable status).
 */
 void faultSequentialStateMachine(volatile faultflags_t *faultFlags, volatile motorflags_t *motorFlags)
 {

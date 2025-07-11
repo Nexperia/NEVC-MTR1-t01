@@ -347,6 +347,7 @@ static void FlagsInit(void)
   motorFlags.actualDirection = DIRECTION_UNKNOWN;
   motorFlags.desiredDirection = DIRECTION_FORWARD;
   motorFlags.driveWaveform = WAVEFORM_UNDEFINED;
+  motorFlags.fatalFault = FALSE;
 
   // Initialize faultFlags with default values. Set motorStopped to FALSE at
   // startup. This will make sure that the motor is not started if it is not
@@ -553,7 +554,10 @@ static void ADCInit(void)
   // Check if ADC can measure 0V within 10mV.
   if (adc_reading > 2)
   {
-    FatalError((uint8_t)0b0000111);
+    SetFaultFlag(FAULT_USER_FLAG1, TRUE);
+    SetFaultFlag(FAULT_USER_FLAG2, FALSE);
+    SetFaultFlag(FAULT_USER_FLAG3, FALSE);
+    FatalError();
   }
 
   // Select next AD conversion channel [1V1 for self-test].
@@ -567,7 +571,10 @@ static void ADCInit(void)
   // Check if ADC can measure 1.1V within 1% (1.09 to 1.1V).
   if ((adc_reading < 223) || (adc_reading > 227))
   {
-    FatalError((uint8_t)0b0000111);
+    SetFaultFlag(FAULT_USER_FLAG1, TRUE);
+    SetFaultFlag(FAULT_USER_FLAG2, FALSE);
+    SetFaultFlag(FAULT_USER_FLAG3, FALSE);
+    FatalError();
   }
 
   // Select next AD conversion channel [BREF].
@@ -676,7 +683,7 @@ static void EnableUpdate(void)
 static void DisableMotor(void)
 {
   motorFlags.enable = FALSE;
-  faultFlags.motorStopped = FALSE;
+  SetFaultFlag(FAULT_MOTOR_STOPPED, FALSE);
 
 #if (TURN_OFF_MODE == TURN_OFF_MODE_COAST)
   // Disable driver signals to let the motor coast.
@@ -792,41 +799,17 @@ static void SpeedController(void)
 
    This function is called in response to a fatal error condition. It performs
    the following actions:
-   - Detaches all interrupts to prevent further operation.
-   - Disables PWM outputs.
-   - Sets fault flags based on the provided error code.
-   - Enters a loop, continuously executing the fault sequential state machine
-     and delaying for 2 milliseconds between each iteration.
-
-   \param code The error code indicating the nature of the fatal error. Each bit
-               of the code corresponds to a specific fault condition: - Bit 0:
-               User Flag 3 - Bit 1: User Flag 2 - Bit 2: User Flag 1 - Bit 3:
-               Reverse Direction - Bit 4: Motor Stopped - Bit 5: Over Current -
-               Bit 6: No Hall Connections
+   - Sets the motor to stop rotation.
+   - Once the motor is stopped, it will loop indefinitely inside \ref CommutationTicksUpdate().
 */
-static void FatalError(uint8_t code)
+static void FatalError()
 {
-  // Detach all interrupts
-  cli();
+  // Stop the motor.
+  DisableMotor();
 
-  // Disable outputs
-  DisablePWMOutputs();
-
-  // Set faultFlags based on the provided error code
-  faultFlags.userFlag3 = (code & 0x01) != 0;
-  faultFlags.userFlag2 = (code & 0x02) != 0;
-  faultFlags.userFlag1 = (code & 0x04) != 0;
-  faultFlags.reverseDirection = (code & 0x08) != 0;
-  faultFlags.motorStopped = (code & 0x10) != 0;
-  faultFlags.overCurrent = (code & 0x20) != 0;
-  faultFlags.noHallConnections = (code & 0x40) != 0;
-
-  // loop forever
-  while (1)
-  {
-    faultSequentialStateMachine(&faultFlags, &motorFlags);
-    _delay_ms(2);
-  }
+  // Once this is set no more faults will be registered creating a snapshot
+  // of the failure point.
+  motorFlags.fatalFault = TRUE;
 }
 
 /*! \brief Set duty cycle for TIM4.
@@ -1008,6 +991,9 @@ static FORCE_INLINE void ActualDirectionUpdate(uint8_t lastHall, const uint8_t n
 
     This function compares the actual and desired direction flags to determine
     if the motor is running in the opposite direction of what is requested.
+
+    \note For fast access, \ref SetFaultFlag() is not used to update this flag.
+    Instead, the flag is updated directly.
 */
 static FORCE_INLINE void ReverseRotationSignalUpdate(void)
 {
@@ -1086,16 +1072,28 @@ static FORCE_INLINE void CommutationTicksUpdate(void)
   else
   {
     // Set flags to notify that the motor is stopped.
-    faultFlags.motorStopped = TRUE;
+    SetFaultFlag(FAULT_MOTOR_STOPPED, TRUE);
     lastCommutationTicks = 0xffff;
+
+    // Get the current hall value.
     uint8_t hall = GetHall();
     if ((hall == 0) || (hall == 0b111))
     {
-      faultFlags.noHallConnections = TRUE;
+      SetFaultFlag(FAULT_NO_HALL_CONNECTIONS, TRUE);
+    }
+
+    // If the motor is in a fatal fault, motor is now stopped so loop forever.
+    if (motorFlags.fatalFault == TRUE)
+    {
+      while (1)
+      {
+        faultSequentialStateMachine(&faultFlags, &motorFlags);
+        _delay_ms(2);
+      }
     }
     // If the motor is supposed to be enabled, and the drive method is not block commutation,
     // reset the speed output and set the drive waveform.
-    if (motorFlags.driveWaveform != WAVEFORM_BLOCK_COMMUTATION && motorFlags.enable == TRUE)
+    else if (motorFlags.driveWaveform != WAVEFORM_BLOCK_COMMUTATION && motorFlags.enable == TRUE)
     {
       speedOutput = 0;
 #if (SPEED_CONTROL_METHOD == SPEED_CONTROL_CLOSED_LOOP)
@@ -1161,6 +1159,8 @@ ISR(PCINT0_vect)
   commutationTicks = 0;
 
   // Since the hall sensors are changing, the motor can not be stopped.
+  // For fast access, SetFaultFlag() is not used to update this flag.
+  // Instead, the flag is updated directly.
   faultFlags.motorStopped = FALSE;
   faultFlags.noHallConnections = FALSE;
 }
@@ -1311,15 +1311,19 @@ ISR(ADC_vect)
     // Check for over current conditions and set fault flags.
     if (ibus > IBUS_ERROR_THRESHOLD)
     {
-      FatalError((uint8_t)0b0100111);
+      SetFaultFlag(FAULT_OVER_CURRENT, TRUE);
+      SetFaultFlag(FAULT_USER_FLAG1, TRUE);
+      SetFaultFlag(FAULT_USER_FLAG2, TRUE);
+      SetFaultFlag(FAULT_USER_FLAG3, TRUE);
+      FatalError();
     }
     else if (ibus > IBUS_WARNING_THRESHOLD)
     {
-      faultFlags.overCurrent = TRUE;
+      SetFaultFlag(FAULT_OVER_CURRENT, TRUE);
     }
     else
     {
-      faultFlags.overCurrent = FALSE;
+      SetFaultFlag(FAULT_OVER_CURRENT, FALSE);
     }
     break;
   case (ADC_MUX_H_IPHASE_U | ADC_MUX_L_IPHASE_U):
@@ -1360,10 +1364,65 @@ ISR(ADC_vect)
     break;
   default:
     // This is probably an error and should be handled.
-    FatalError((uint8_t)0b0000111);
+    SetFaultFlag(FAULT_USER_FLAG1, TRUE);
+    SetFaultFlag(FAULT_USER_FLAG2, TRUE);
+    SetFaultFlag(FAULT_USER_FLAG3, TRUE);
+    FatalError();
     break;
   }
 
   // Clear Timer/Counter0 overflow flag.
   TIFR0 = (1 << TOV0);
+}
+
+/**
+   \brief Sets a fault flag value.
+
+   This function sets the specified fault flag to the value given.
+
+   \param[in] flags Pointer to a \ref faultflags_t structure.
+   \param[in] flag The fault flag to set as defined in the \ref fault_flag_t enumeration.
+   \param[in] value The boolean value to set the fault flag to.
+
+   \see faultflags_t, fault_flag_t
+*/
+static void SetFaultFlag(fault_flag_t flag, uint8_t value)
+{
+  if (motorFlags.fatalFault)
+  {
+    // Fatal fault active, cannot set any more flags.
+    return;
+  }
+
+  switch (flag)
+  {
+  case FAULT_RESERVED:
+    faultFlags.reserved = value;
+    break;
+  case FAULT_REVERSE_DIRECTION:
+    faultFlags.reverseDirection = value;
+    break;
+  case FAULT_MOTOR_STOPPED:
+    faultFlags.motorStopped = value;
+    break;
+  case FAULT_OVER_CURRENT:
+    faultFlags.overCurrent = value;
+    break;
+  case FAULT_NO_HALL_CONNECTIONS:
+    faultFlags.noHallConnections = value;
+    break;
+  case FAULT_USER_FLAG1:
+    faultFlags.userFlag1 = value;
+    break;
+  case FAULT_USER_FLAG2:
+    faultFlags.userFlag2 = value;
+    break;
+  case FAULT_USER_FLAG3:
+    faultFlags.userFlag3 = value;
+    break;
+  default:
+    return; // Invalid flag
+  }
+
+  return; // Success
 }
