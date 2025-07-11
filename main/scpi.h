@@ -28,8 +28,8 @@
 #ifndef _SCPI_H_
 #define _SCPI_H_
 
-#include "scpi_config.h"
 #include "scpi_helper.h"
+#include "config.h"
 
 #define MOTOR_DIRECTION_OPTIONS 2
 /*! \brief Number of motor direction options. */

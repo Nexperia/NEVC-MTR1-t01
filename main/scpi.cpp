@@ -26,6 +26,9 @@
  ******************************************************************************/
 
 #include "scpi.h"
+#include "config.h"
+#include "scpi_config.h"
+#include "scpi_helper.h"
 
 // Instantiate the SCPI Parser
 SCPI_Parser scpiParser;
