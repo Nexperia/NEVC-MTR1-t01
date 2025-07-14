@@ -33,7 +33,13 @@
 
 #include "scpi_parser.h"
 
-// Do nothing function
+/**
+ * @brief A no-operation function. No error handling is performed when this function is called.
+ *
+ * @param[in] c SCPI_C object containing the command tree.
+ * @param[in] p SCPI_P object containing the parsed command parameters.
+ * @param[in] interface Stream object for outputting error messages.
+ */
 void DefaultErrorHandler(SCPI_C c, SCPI_P p, Stream &interface) {}
 
 /**

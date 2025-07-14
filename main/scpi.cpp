@@ -30,6 +30,34 @@
 #include "scpi_config.h"
 #include "scpi_helper.h"
 
+// Forward declarations
+static void ScpiCoreIdnQ(SCPI_C commands, SCPI_P parameters, Stream &interface);
+static void ScpiSystemErrorCountQ(SCPI_C commands, SCPI_P parameters, Stream &interface);
+static void ScpiSystemErrorNextQ(SCPI_C commands, SCPI_P parameters, Stream &interface);
+static void GetMotorEnable(SCPI_C commands, SCPI_P parameters, Stream &interface);
+static void ConfigureMotorEnable(SCPI_C commands, SCPI_P parameters, Stream &interface);
+static void GetConfigureMotorDutyCycleSource(SCPI_C commands, SCPI_P parameters, Stream &interface);
+static void ConfigureMotorDutyCycle(SCPI_C commands, SCPI_P parameters, Stream &interface);
+static void ConfigureMotorFrequency(SCPI_C commands, SCPI_P parameters, Stream &interface);
+static void GetConfigureMotorFrequency(SCPI_C commands, SCPI_P parameters, Stream &interface);
+static void ConfigureMotorDirection(SCPI_C commands, SCPI_P parameters, Stream &interface);
+static void GetConfigureMotorDirection(SCPI_C commands, SCPI_P parameters, Stream &interface);
+static void MeasureMotorSpeed(SCPI_C commands, SCPI_P parameters, Stream &interface);
+static void MeasureMotorCurrentVBus(SCPI_C commands, SCPI_P parameters, Stream &interface);
+static void MeasureMotorCurrentPhaseU(SCPI_C commands, SCPI_P parameters, Stream &interface);
+static void MeasureMotorCurrentPhaseV(SCPI_C commands, SCPI_P parameters, Stream &interface);
+static void MeasureMotorCurrentPhaseW(SCPI_C commands, SCPI_P parameters, Stream &interface);
+static void MeasureMotorDirection(SCPI_C commands, SCPI_P parameters, Stream &interface);
+static void MeasureMotorVoltage(SCPI_C commands, SCPI_P parameters, Stream &interface);
+static void MeasureGateDutyCycle(SCPI_C commands, SCPI_P parameters, Stream &interface);
+#if (SPEED_CONTROL_METHOD == SPEED_CONTROL_OPEN_LOOP)
+static void ConfigureMotorDutyCycleSource(SCPI_C commands, SCPI_P parameters, Stream &interface);
+#elif (SPEED_CONTROL_METHOD == SPEED_CONTROL_CLOSED_LOOP)
+static void ConfigureMotorSpeedSource(SCPI_C commands, SCPI_P parameters, Stream &interface);
+static void GetMotorSpeedSource(SCPI_C commands, SCPI_P parameters, Stream &interface);
+static void ConfigureMotorSpeed(SCPI_C commands, SCPI_P parameters, Stream &interface);
+#endif
+
 // Instantiate the SCPI Parser
 SCPI_Parser scpiParser;
 
@@ -556,7 +584,7 @@ static void MeasureMotorCurrentPhaseW(SCPI_C commands, SCPI_P parameters, Stream
  * \param parameters The SCPI parameters (not used).
  * \param interface The serial interface to write the response to.
  */
-static void MeasureMotorDirection(SCPI_C context, SCPI_P parameters, Stream &interface)
+static void MeasureMotorDirection(SCPI_C commands, SCPI_P parameters, Stream &interface)
 {
     if (motorFlags.actualDirection == DIRECTION_UNKNOWN)
     {
@@ -580,7 +608,7 @@ static void MeasureMotorDirection(SCPI_C context, SCPI_P parameters, Stream &int
  * \param parameters The SCPI parameters (not used).
  * \param interface The serial interface to write the response to.
  */
-static void MeasureMotorVoltage(SCPI_C context, SCPI_P parameters, Stream &interface)
+static void MeasureMotorVoltage(SCPI_C commands, SCPI_P parameters, Stream &interface)
 {
     interface.println(((double)vbusVref * 5.0 * (VBUS_RTOP + VBUS_RBOTTOM)) / ((double)1023.0 * VBUS_RBOTTOM));
 }
@@ -597,7 +625,7 @@ static void MeasureMotorVoltage(SCPI_C context, SCPI_P parameters, Stream &inter
  * \param parameters The SCPI parameters (not used).
  * \param interface The serial interface to write the response to.
  */
-static void MeasureGateDutyCycle(SCPI_C context, SCPI_P parameters, Stream &interface)
+static void MeasureGateDutyCycle(SCPI_C commands, SCPI_P parameters, Stream &interface)
 {
     if (motorFlags.enable == TRUE)
     {

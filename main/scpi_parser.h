@@ -71,7 +71,7 @@ public:
                        SCPI_caller_t caller);
   // Set the function to be used by the error handler.
   void SetErrorHandler(SCPI_caller_t caller);
-  /// Variable that holds the last error code.
+  //! Variable that holds the last error code.
   ErrorCode last_error = ErrorCode::NoError;
   // Process a message and execute it a valid command is found
   void Execute(char *message, Stream &interface);
@@ -81,11 +81,11 @@ public:
   char *GetMessage(Stream &interface, const char *term_chars);
   // Prints registered tokens and command hashes to the serial interface
   void PrintDebugInfo(Stream &interface);
-  /// Magic number used for hashing the commands
+  //! Magic number used for hashing the commands
   scpi_hash_t hash_magic_number = 37;
-  /// Magic offset used for hashing the commands
+  //! Magic offset used for hashing the commands
   scpi_hash_t hash_magic_offset = 7;
-  // Timeout, in miliseconds, for GetMessage and ProcessInput.
+  //! Timeout, in miliseconds, for GetMessage and ProcessInput.
   unsigned long timeout = 10;
 
 #if SCPI_MAX_SPECIAL_COMMANDS
@@ -100,62 +100,67 @@ public:
 #endif
 
 protected:
-  // Length of the message buffer.
+  //! Length of the message buffer.
   const uint8_t buffer_length = SCPI_BUFFER_LENGTH;
-  // Max number of valid tokens.
+  //! Max number of valid tokens.
   const uint8_t max_tokens = SCPI_MAX_TOKENS;
-  // Max number of registered commands.
+  //! Max number of registered commands.
   const uint8_t max_commands = SCPI_MAX_COMMANDS;
-  // Internal errors container
+  /*! \struct internal_errors
+   *  \brief Internal errors container
+   *
+   *  This struct holds boolean flags for checking if the
+   *  internal storage containers overflowed during setup.
+   */
   struct internal_errors
   {
-    // Command storage overflow error
+    //! Command storage overflow error
     bool command_overflow = false;
-    // Token storage overflow error
+    //! Token storage overflow error
     bool token_overflow = false;
-    // Branch (SCPI_Commands) storage overflow error
+    //! Branch (SCPI_Commands) storage overflow error
     bool branch_overflow = false;
-    // Special command storage overflow error
+    //! Special command storage overflow error
     bool special_command_overflow = false;
   } setup_errors;
-  // Hash result for unknown commands
+  //! Hash result for unknown commands
   const scpi_hash_t unknown_hash = 0;
-  // Hash reserved for invalid commands
+  //! Hash reserved for invalid commands
   const scpi_hash_t invalid_hash = 1;
 
-  // Add a token to the tokens' storage
+  //! Add a token to the tokens' storage
   void AddToken_(char *token);
-  // Get a hash from a command
+  //! Get a hash from a command
   scpi_hash_t GetCommandCode_(SCPI_Commands &commands);
-  // Number of stored tokens
+  //! Number of stored tokens
   uint8_t tokens_size_ = 0;
-  // Storage for tokens
+  //! Storage for tokens
   char *tokens_[SCPI_MAX_TOKENS];
-  // Number of registered commands
+  //! Number of registered commands
   uint8_t codes_size_ = 0;
-  // Registered commands' hash storage
+  //! Registered commands' hash storage
   scpi_hash_t valid_codes_[SCPI_MAX_COMMANDS];
-  // Pointers to the functions to be called when a valid command is received
+  //! Pointers to the functions to be called when a valid command is received
   SCPI_caller_t callers_[SCPI_MAX_COMMANDS + 1];
-  // TreeBase branch's hash used when calculating hashes (0 for root)
+  //! TreeBase branch's hash used when calculating hashes (0 for root)
   scpi_hash_t tree_code_ = 0;
-  // TreeBase branch's length (0 for root)
+  //! TreeBase branch's length (0 for root)
   uint8_t tree_length_ = 0;
-  // Message buffer.
+  //! Message buffer.
   char msg_buffer_[SCPI_BUFFER_LENGTH];
-  // Length of the readed message
+  //! Length of the readed message
   uint8_t message_length_ = 0;
-  // Varible used for checking timeout errors
+  //! Varible used for checking timeout errors
   unsigned long time_checker_;
 
 #if SCPI_MAX_SPECIAL_COMMANDS
-  // Max number of registered special commands.
+  //! Max number of registered special commands.
   const uint8_t max_special_commands = SCPI_MAX_SPECIAL_COMMANDS;
-  // Number of registered special commands
+  //! Number of registered special commands
   uint8_t special_codes_size_ = 0;
-  // Registered special commands' hash storage
+  //! Registered special commands' hash storage
   scpi_hash_t valid_special_codes_[SCPI_MAX_SPECIAL_COMMANDS];
-  // Pointers to the functions to be called when a special command is received
+  //! Pointers to the functions to be called when a special command is received
   SCPI_special_caller_t special_callers_[SCPI_MAX_SPECIAL_COMMANDS];
 #endif
 };
