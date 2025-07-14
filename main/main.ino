@@ -1308,22 +1308,32 @@ ISR(ADC_vect)
     ADCSRB &= ~ADC_MUX_H_BITS;
     ADCSRB |= ADC_MUX_H_IPHASE_U;
 
-    // Check for over current conditions and set fault flags.
+    // Debounce current error flags.
+    static uint8_t currentErrorCount = 0;
     if (ibus > IBUS_ERROR_THRESHOLD)
     {
-      SetFaultFlag(FAULT_OVER_CURRENT, TRUE);
-      SetFaultFlag(FAULT_USER_FLAG1, TRUE);
-      SetFaultFlag(FAULT_USER_FLAG2, TRUE);
-      SetFaultFlag(FAULT_USER_FLAG3, TRUE);
-      FatalError();
+      if (currentErrorCount < 3)
+      {
+        currentErrorCount++;
+      }
+      else
+      {
+        SetFaultFlag(FAULT_OVER_CURRENT, TRUE);
+        SetFaultFlag(FAULT_USER_FLAG1, TRUE);
+        SetFaultFlag(FAULT_USER_FLAG2, TRUE);
+        SetFaultFlag(FAULT_USER_FLAG3, TRUE);
+        FatalError();
+      }
     }
     else if (ibus > IBUS_WARNING_THRESHOLD)
     {
       SetFaultFlag(FAULT_OVER_CURRENT, TRUE);
+      currentErrorCount = 0;
     }
     else
     {
       SetFaultFlag(FAULT_OVER_CURRENT, FALSE);
+      currentErrorCount = 0;
     }
     break;
   case (ADC_MUX_H_IPHASE_U | ADC_MUX_L_IPHASE_U):
