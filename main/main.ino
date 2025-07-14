@@ -41,19 +41,23 @@
 
 /*! \brief Motor control flags placed in I/O space for fast access.
 
-    This variable contains all the flags used for motor control. It is placed in
-    GPIOR0 register, which allows usage of several fast bit manipulation/branch
+    This variable contains all the flags used for motor control. It is placed in GPIOR1
+    and GPIOR2 registers, which allows usage of several fast bit manipulation/branch
     instructions.
+
+    \warning This variable can only have a maximum size of 2 bytes.
 */
-volatile motorflags_t motorFlags FAST_ACCESS(0x3E);
+volatile motorflags_t motorFlags FAST_ACCESS(0x4A);
 
 /*! \brief Fault flags placed in I/O space for fast access.
 
-    This variable contains all the flags used for faults. It is placed in GPIOR1
+    This variable contains all the flags used for faults. It is placed in GPIOR0
     register, which allows usage of several fast bit manipulation/branch
     instructions.
+
+    \warning This variable can only have a maximum size of 1 byte.
 */
-volatile faultflags_t faultFlags FAST_ACCESS(0x4A);
+volatile faultflags_t faultFlags FAST_ACCESS(0x3E);
 
 /*! \brief Motor Configs.
 
@@ -343,6 +347,7 @@ static void FlagsInit(void)
   motorFlags.actualDirection = DIRECTION_UNKNOWN;
   motorFlags.desiredDirection = DIRECTION_FORWARD;
   motorFlags.driveWaveform = WAVEFORM_UNDEFINED;
+  motorFlags.fatalFault = FALSE;
 
   // Initialize faultFlags with default values. Set motorStopped to FALSE at
   // startup. This will make sure that the motor is not started if it is not
@@ -447,8 +452,7 @@ static void PortsInit(void)
     ovwerflow occurs ~977 times per second. The overflow interrupt is used to
     trigger the ADC conversion unless changed by the user.
 
-    \see EMULATE_HALL, TIM3_FREQ, TimersSetModeBlockCommutation(),
-    TimersSetModeBrake()
+    \see EMULATE_HALL, TIM3_FREQ, TimersSetModeBlockCommutation()
 */
 void TimersInit(void)
 {
@@ -550,7 +554,10 @@ static void ADCInit(void)
   // Check if ADC can measure 0V within 10mV.
   if (adc_reading > 2)
   {
-    FatalError((uint8_t)0b0000111);
+    SetFaultFlag(FAULT_USER_FLAG1, TRUE);
+    SetFaultFlag(FAULT_USER_FLAG2, FALSE);
+    SetFaultFlag(FAULT_USER_FLAG3, FALSE);
+    FatalError();
   }
 
   // Select next AD conversion channel [1V1 for self-test].
@@ -564,7 +571,10 @@ static void ADCInit(void)
   // Check if ADC can measure 1.1V within 1% (1.09 to 1.1V).
   if ((adc_reading < 223) || (adc_reading > 227))
   {
-    FatalError((uint8_t)0b0000111);
+    SetFaultFlag(FAULT_USER_FLAG1, TRUE);
+    SetFaultFlag(FAULT_USER_FLAG2, FALSE);
+    SetFaultFlag(FAULT_USER_FLAG3, FALSE);
+    FatalError();
   }
 
   // Select next AD conversion channel [BREF].
@@ -636,13 +646,13 @@ static uint16_t ADCSingleConversion(void)
     specific actions based on the \ref TURN_OFF_MODE configuration:
     - If \ref TURN_OFF_MODE is set to \ref TURN_OFF_MODE_COAST, it disables
       driver signals, allowing the motor to coast.
-    - If \ref TURN_OFF_MODE is set to \ref TURN_OFF_MODE_BRAKE, it sets the
-      motor in brake mode.
+    - If \ref TURN_OFF_MODE is set to \ref TURN_OFF_MODE_RAMP, it sets the
+      motor to ramp down before disabling driver signals.
 
     \note The behavior of this function depends on the \ref TURN_OFF_MODE
     configuration.
 
-    \see TURN_OFF_MODE, TimersSetModeBrake()
+    \see TURN_OFF_MODE
 */
 static void EnableUpdate(void)
 {
@@ -652,22 +662,35 @@ static void EnableUpdate(void)
   }
   else
   {
-    motorFlags.enable = FALSE;
+    DisableMotor();
+  }
+}
+
+/*! \brief Disable motor
+
+    This function disables the motor by clearing the enable flag and performing
+    specific actions based on the \ref TURN_OFF_MODE configuration:
+    - If \ref TURN_OFF_MODE is set to \ref TURN_OFF_MODE_COAST, it disables
+      driver signals, allowing the motor to coast.
+    - If \ref TURN_OFF_MODE is set to \ref TURN_OFF_MODE_RAMP, it sets the
+      motor to ramp down before disabling driver signals.
+
+    \note The behavior of this function depends on the \ref TURN_OFF_MODE
+    configuration.
+
+    \see TURN_OFF_MODE
+*/
+static void DisableMotor(void)
+{
+  motorFlags.enable = FALSE;
+  SetFaultFlag(FAULT_MOTOR_STOPPED, FALSE);
 
 #if (TURN_OFF_MODE == TURN_OFF_MODE_COAST)
-    // Disable driver signals to let the motor coast.
-    motorFlags.driveWaveform = WAVEFORM_UNDEFINED;
-    DisablePWMOutputs();
-    ClearPWMPorts();
-    faultFlags.motorStopped = FALSE;
+  // Disable driver signals to let the motor coast.
+  motorFlags.driveWaveform = WAVEFORM_UNDEFINED;
+  DisablePWMOutputs();
+  ClearPWMPorts();
 #endif
-
-#if (TURN_OFF_MODE == TURN_OFF_MODE_BRAKE)
-    // Set the motor in brake mode.
-    faultFlags.motorStopped = FALSE;
-    TimersSetModeBrake();
-#endif
-  }
 }
 
 /*! \brief Check whether the remote pin is set and update flags accordingly.
@@ -757,7 +780,17 @@ static void SpeedController(void)
   }
   else
   {
-    speedOutput = 0;
+    if (speedOutput > 0)
+    {
+      if (speedOutput > SPEED_CONTROLLER_MAX_DELTA)
+      {
+        speedOutput -= SPEED_CONTROLLER_MAX_DELTA;
+      }
+      else
+      {
+        speedOutput = 0;
+      }
+    }
   }
 }
 
@@ -766,41 +799,17 @@ static void SpeedController(void)
 
    This function is called in response to a fatal error condition. It performs
    the following actions:
-   - Detaches all interrupts to prevent further operation.
-   - Disables PWM outputs.
-   - Sets fault flags based on the provided error code.
-   - Enters a loop, continuously executing the fault sequential state machine
-     and delaying for 2 milliseconds between each iteration.
-
-   \param code The error code indicating the nature of the fatal error. Each bit
-               of the code corresponds to a specific fault condition: - Bit 0:
-               User Flag 3 - Bit 1: User Flag 2 - Bit 2: User Flag 1 - Bit 3:
-               Reverse Direction - Bit 4: Motor Stopped - Bit 5: Over Current -
-               Bit 6: No Hall Connections
+   - Sets the motor to stop rotation.
+   - Once the motor is stopped, it will loop indefinitely inside \ref CommutationTicksUpdate().
 */
-static void FatalError(uint8_t code)
+static void FatalError()
 {
-  // Detach all interrupts
-  cli();
+  // Stop the motor.
+  DisableMotor();
 
-  // Disable outputs
-  DisablePWMOutputs();
-
-  // Set faultFlags based on the provided error code
-  faultFlags.userFlag3 = (code & 0x01) != 0;
-  faultFlags.userFlag2 = (code & 0x02) != 0;
-  faultFlags.userFlag1 = (code & 0x04) != 0;
-  faultFlags.reverseDirection = (code & 0x08) != 0;
-  faultFlags.motorStopped = (code & 0x10) != 0;
-  faultFlags.overCurrent = (code & 0x20) != 0;
-  faultFlags.noHallConnections = (code & 0x40) != 0;
-
-  // loop forever
-  while (1)
-  {
-    faultSequentialStateMachine(&faultFlags, &motorFlags);
-    _delay_ms(2);
-  }
+  // Once this is set no more faults will be registered creating a snapshot
+  // of the failure point.
+  motorFlags.fatalFault = TRUE;
 }
 
 /*! \brief Set duty cycle for TIM4.
@@ -851,52 +860,6 @@ static FORCE_INLINE void TimersSetModeBlockCommutation(void)
   EnablePWMOutputs();
 }
 
-#if (TURN_OFF_MODE == TURN_OFF_MODE_BRAKE)
-/*! \brief Configures timers for braking and starts braking.
-
-    This function configures the timers for braking and starts braking. Please
-    note that braking when turning can produce too much heat for the MOSFETs to
-    handle. Use with care!
-
-    When called, this function sets the PWM pins to input (High-Z) while
-    changing modes. It then configures the timer and sets a 50% duty cycle for
-    braking. Both the high side and the low side gates are set to output the PWM
-    signal. It waits for the next PWM cycle to ensure that all outputs are
-    updated, sets the motor drive waveform to braking, and changes the PWM pins
-    back to output mode to allow PWM control.
-
-    \note This function is conditional and depends on the \ref TURN_OFF_MODE
-    configuration.
-
-    \see TURN_OFF_MODE
-*/
-static FORCE_INLINE void TimersSetModeBrake(void)
-{
-  // Set PWM pins to input (High-Z) while changing modes.
-  DisablePWMOutputs();
-
-  // Sets up timers.
-  TCCR4A = (0 << COM4A1) | (1 << COM4A0) | (0 << COM4B1) | (1 << COM4B0) | (1 << PWM4A) | (1 << PWM4B);
-  TCCR4C |= (0 << COM4D1) | (1 << COM4D0) | (1 << PWM4D);
-  TCCR4D = (1 << WGM41) | (1 << WGM40);
-
-  // Set to 50% duty
-  SetDuty((uint16_t)511);
-
-  // PWM outputs on both high side and low side gates are turned enabled
-  // (complementary)
-  TCCR4E &= ~0b00111111;
-  TCCR4E |= OC_ENABLE_PORTB | OC_ENABLE_PORTC | OC_ENABLE_PORTD;
-
-  // Wait for the next PWM cycle to ensure that all outputs are updated.
-  TimersWaitForNextPWMCycle();
-
-  motorFlags.driveWaveform = WAVEFORM_BRAKING;
-
-  EnablePWMOutputs();
-}
-#endif
-
 /*! \brief Wait for the start of the next PWM cycle.
 
     This function waits for the beginning of the next PWM cycle to ensure smooth
@@ -911,41 +874,6 @@ static FORCE_INLINE void TimersWaitForNextPWMCycle(void)
   while (!(TIFR4 & (1 << TOV4)))
   {
   }
-}
-
-/*! \brief Retrieve the intended motor direction.
-
-    This function provides the current intended direction for the motor.
-
-    \note The direction input is not directly read at this point. Instead, a
-    separate pin change interrupt is responsible for monitoring the input.
-
-    \retval DIRECTION_FORWARD Forward direction is the intended direction.
-    \retval DIRECTION_REVERSE Reverse direction is the intended direction.
-*/
-static FORCE_INLINE uint8_t GetDesiredDirection(void)
-{
-  return (uint8_t)motorFlags.desiredDirection;
-}
-
-/*! \brief Retrieve the current motor direction.
-
-    This function returns the current operating direction of the motor.
-
-    \note To accurately determine the direction, two consecutive hall sensor
-    changes in the same direction are required.
-
-    \return The current motor direction.
-
-    \retval DIRECTION_FORWARD Motor is currently running forward. \retval
-    DIRECTION_REVERSE Motor is currently running in reverse. \retval
-    DIRECTION_UNKNOWN The current motor direction cannot be determined, which
-    may indicate the motor is stopped, changing direction, or that the hall
-    sensors are providing incorrect information.
-*/
-static FORCE_INLINE uint8_t GetActualDirection(void)
-{
-  return motorFlags.actualDirection;
 }
 
 /*! \brief Perform block commutation based on direction and hall sensor input
@@ -1013,7 +941,11 @@ static FORCE_INLINE uint8_t GetHall(void)
 */
 static FORCE_INLINE void DesiredDirectionUpdate(void)
 {
-  if ((PIND & (1 << DIRECTION_COMMAND_PIN)) != 0)
+  if (motorFlags.enable == TRUE)
+  {
+    return;
+  }
+  else if ((PIND & (1 << DIRECTION_COMMAND_PIN)) != 0)
   {
     motorFlags.desiredDirection = DIRECTION_REVERSE;
   }
@@ -1059,10 +991,13 @@ static FORCE_INLINE void ActualDirectionUpdate(uint8_t lastHall, const uint8_t n
 
     This function compares the actual and desired direction flags to determine
     if the motor is running in the opposite direction of what is requested.
+
+    \note For fast access, \ref SetFaultFlag() is not used to update this flag.
+    Instead, the flag is updated directly.
 */
 static FORCE_INLINE void ReverseRotationSignalUpdate(void)
 {
-  if (GetActualDirection() == GetDesiredDirection())
+  if (motorFlags.actualDirection == motorFlags.desiredDirection)
   {
     faultFlags.reverseDirection = FALSE;
   }
@@ -1128,36 +1063,58 @@ static FORCE_INLINE void ClearPWMPorts(void)
 */
 static FORCE_INLINE void CommutationTicksUpdate(void)
 {
+  // If the motor is not stopped, increment the tick counter.
   if (commutationTicks < COMMUTATION_TICKS_STOPPED)
   {
     commutationTicks++;
   }
+  // If motor is stopped, set the stopped flag and clear the tick counter.
   else
   {
-    faultFlags.motorStopped = TRUE;
+    // Set flags to notify that the motor is stopped.
+    SetFaultFlag(FAULT_MOTOR_STOPPED, TRUE);
     lastCommutationTicks = 0xffff;
+
+    // Get the current hall value.
     uint8_t hall = GetHall();
     if ((hall == 0) || (hall == 0b111))
     {
-      faultFlags.noHallConnections = TRUE;
+      SetFaultFlag(FAULT_NO_HALL_CONNECTIONS, TRUE);
     }
-    if (motorFlags.driveWaveform != WAVEFORM_BLOCK_COMMUTATION && motorFlags.enable == TRUE)
+
+    // If the motor is in a fatal fault, motor is now stopped so loop forever.
+    if (motorFlags.fatalFault == TRUE)
+    {
+      while (1)
+      {
+        faultSequentialStateMachine(&faultFlags, &motorFlags);
+        _delay_ms(2);
+      }
+    }
+    // If the motor is supposed to be enabled, and the drive method is not block commutation,
+    // reset the speed output and set the drive waveform.
+    else if (motorFlags.driveWaveform != WAVEFORM_BLOCK_COMMUTATION && motorFlags.enable == TRUE)
     {
       speedOutput = 0;
 #if (SPEED_CONTROL_METHOD == SPEED_CONTROL_CLOSED_LOOP)
       PIDResetIntegrator(&pidParameters);
 #endif
       TimersSetModeBlockCommutation();
-      BlockCommutate(GetDesiredDirection(), GetHall());
+      BlockCommutate(motorFlags.desiredDirection, GetHall());
     }
-#if (TURN_OFF_MODE == TURN_OFF_MODE_BRAKE)
+    // If the motor is supposed to be stopped, (and it has stopped now) ...
     else if (motorFlags.enable == FALSE)
     {
+#if (TURN_OFF_MODE == TURN_OFF_MODE_RAMP)
+      // ... unset the drive waveform and disable PWM outputs.
       motorFlags.driveWaveform = WAVEFORM_UNDEFINED;
       DisablePWMOutputs();
       ClearPWMPorts();
-    }
 #endif
+      // ... update the desired direction flag as this would not have been
+      // updated if the direction was changed while the motor was running.
+      DesiredDirectionUpdate();
+    }
   }
 }
 
@@ -1188,7 +1145,7 @@ ISR(PCINT0_vect)
 
   if (motorFlags.driveWaveform == WAVEFORM_BLOCK_COMMUTATION)
   {
-    BlockCommutate(GetDesiredDirection(), hall);
+    BlockCommutate(motorFlags.desiredDirection, hall);
   }
 
   // Update flags that depend on hall sensor value.
@@ -1202,6 +1159,8 @@ ISR(PCINT0_vect)
   commutationTicks = 0;
 
   // Since the hall sensors are changing, the motor can not be stopped.
+  // For fast access, SetFaultFlag() is not used to update this flag.
+  // Instead, the flag is updated directly.
   faultFlags.motorStopped = FALSE;
   faultFlags.noHallConnections = FALSE;
 }
@@ -1209,12 +1168,12 @@ ISR(PCINT0_vect)
 /*! \brief Direction input change interrupt service routine.
 
     This interrupt service routine is called every time the direction input pin
-    changes state. The desired direction flag is updated accordingly. The motor
-    control then goes into a state where it needs a stopped motor before any
-    driving of the motor is performed.
+    changes state. The motor is stopped and the desired direction flag is
+    updated accordingly. The motor will not start again until the enable pin is
+    turned on again.
 
     \note Depending on the \ref TURN_OFF_MODE configuration, it will either
-    coast or brake.
+    coast or ramp down the motor.
 
     \see TURN_OFF_MODE
 */
@@ -1222,28 +1181,9 @@ ISR(INT2_vect)
 {
   // Update desired direction flag.
   DesiredDirectionUpdate();
-  if (motorFlags.desiredDirection == DIRECTION_FORWARD)
-  {
-  }
-  else if (motorFlags.desiredDirection == DIRECTION_REVERSE)
-  {
-  };
 
-#if (TURN_OFF_MODE == TURN_OFF_MODE_COAST)
-  // Disable driver signals to let motor coast. The motor will automatically
-  // start once it stopped.
-  motorFlags.driveWaveform = WAVEFORM_UNDEFINED;
-  DisablePWMOutputs();
-  ClearPWMPorts();
-  faultFlags.motorStopped = FALSE;
-#endif
-
-#if (TURN_OFF_MODE == TURN_OFF_MODE_BRAKE)
-  // Set motor in brake mode. The motor will automatically start once it is
-  // stopped.
-  faultFlags.motorStopped = FALSE;
-  TimersSetModeBrake(); // Automatically sets driveWaveform.
-#endif
+  // Stop the motor.
+  DisableMotor();
 }
 
 /*! \brief Timer4 Overflow Event Interrupt Service Routine.
@@ -1251,6 +1191,8 @@ ISR(INT2_vect)
    This interrupt service routine is trigger on Timer4 overflow. It manages the
    commutation ticks, which determines motor status. It also controls the
    execution of the speed regulation loop at constant intervals.
+
+   \see TimersInit(), TIM4_FREQ
 */
 ISR(TIMER4_OVF_vect)
 {
@@ -1294,7 +1236,7 @@ ISR(TIMER4_OVF_vect)
 
    \note This ISR is only active when hall emulation is enabled.
 
-   \see EMULATE_HALL
+   \see EMULATE_HALL, TimersInit()
 */
 ISR(TIMER3_OVF_vect)
 {
@@ -1302,7 +1244,7 @@ ISR(TIMER3_OVF_vect)
   {
     uint8_t hall = GetHall();
 
-    if (GetDesiredDirection() == DIRECTION_FORWARD)
+    if (motorFlags.desiredDirection == DIRECTION_FORWARD)
     {
       PORTB = (PORTB & ~((1 << H1_PIN) | (1 << H2_PIN) | (1 << H3_PIN))) | ((0x07 & pgm_read_byte_near(&expectedHallSequenceForward[hall])) << H1_PIN);
     }
@@ -1366,18 +1308,32 @@ ISR(ADC_vect)
     ADCSRB &= ~ADC_MUX_H_BITS;
     ADCSRB |= ADC_MUX_H_IPHASE_U;
 
-    // Check for over current conditions and set fault flags.
+    // Debounce current error flags.
+    static uint8_t currentErrorCount = 0;
     if (ibus > IBUS_ERROR_THRESHOLD)
     {
-      FatalError((uint8_t)0b0100111);
+      if (currentErrorCount < 3)
+      {
+        currentErrorCount++;
+      }
+      else
+      {
+        SetFaultFlag(FAULT_OVER_CURRENT, TRUE);
+        SetFaultFlag(FAULT_USER_FLAG1, TRUE);
+        SetFaultFlag(FAULT_USER_FLAG2, TRUE);
+        SetFaultFlag(FAULT_USER_FLAG3, TRUE);
+        FatalError();
+      }
     }
     else if (ibus > IBUS_WARNING_THRESHOLD)
     {
-      faultFlags.overCurrent = TRUE;
+      SetFaultFlag(FAULT_OVER_CURRENT, TRUE);
+      currentErrorCount = 0;
     }
     else
     {
-      faultFlags.overCurrent = FALSE;
+      SetFaultFlag(FAULT_OVER_CURRENT, FALSE);
+      currentErrorCount = 0;
     }
     break;
   case (ADC_MUX_H_IPHASE_U | ADC_MUX_L_IPHASE_U):
@@ -1418,10 +1374,65 @@ ISR(ADC_vect)
     break;
   default:
     // This is probably an error and should be handled.
-    FatalError((uint8_t)0b0000111);
+    SetFaultFlag(FAULT_USER_FLAG1, TRUE);
+    SetFaultFlag(FAULT_USER_FLAG2, TRUE);
+    SetFaultFlag(FAULT_USER_FLAG3, TRUE);
+    FatalError();
     break;
   }
 
   // Clear Timer/Counter0 overflow flag.
   TIFR0 = (1 << TOV0);
+}
+
+/**
+   \brief Sets a fault flag value.
+
+   This function sets the specified fault flag to the value given.
+
+   \param[in] flags Pointer to a \ref faultflags_t structure.
+   \param[in] flag The fault flag to set as defined in the \ref fault_flag_t enumeration.
+   \param[in] value The boolean value to set the fault flag to.
+
+   \see faultflags_t, fault_flag_t
+*/
+static void SetFaultFlag(fault_flag_t flag, uint8_t value)
+{
+  if (motorFlags.fatalFault)
+  {
+    // Fatal fault active, cannot set any more flags.
+    return;
+  }
+
+  switch (flag)
+  {
+  case FAULT_RESERVED:
+    faultFlags.reserved = value;
+    break;
+  case FAULT_REVERSE_DIRECTION:
+    faultFlags.reverseDirection = value;
+    break;
+  case FAULT_MOTOR_STOPPED:
+    faultFlags.motorStopped = value;
+    break;
+  case FAULT_OVER_CURRENT:
+    faultFlags.overCurrent = value;
+    break;
+  case FAULT_NO_HALL_CONNECTIONS:
+    faultFlags.noHallConnections = value;
+    break;
+  case FAULT_USER_FLAG1:
+    faultFlags.userFlag1 = value;
+    break;
+  case FAULT_USER_FLAG2:
+    faultFlags.userFlag2 = value;
+    break;
+  case FAULT_USER_FLAG3:
+    faultFlags.userFlag3 = value;
+    break;
+  default:
+    return; // Invalid flag
+  }
+
+  return; // Success
 }

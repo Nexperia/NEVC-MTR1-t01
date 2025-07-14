@@ -215,17 +215,15 @@
 /*!
    \brief Turn Off Mode
 
-   Set this macro to either \ref TURN_OFF_MODE_COAST <s>or \ref TURN_OFF_MODE_BRAKE</s>
+   Set this macro to either \ref TURN_OFF_MODE_COAST <s>or \ref TURN_OFF_MODE_RAMP</s>
    to specify the desired turn mode.
 
    \todo Select the turn mode by assigning \ref TURN_OFF_MODE_COAST <s>or \ref
-   TURN_OFF_MODE_BRAKE</s>.
+   TURN_OFF_MODE_RAMP</s>.
 
-   \warning Do not use \ref TURN_OFF_MODE_BRAKE as currently it not properly implemented.
-
-   \see TURN_OFF_MODE_BRAKE, TURN_OFF_MODE_COAST
+   \see TURN_OFF_MODE_RAMP, TURN_OFF_MODE_COAST
 */
-#define TURN_OFF_MODE TURN_OFF_MODE_COAST
+#define TURN_OFF_MODE TURN_OFF_MODE_RAMP
 
 /*!
    \brief In-line Phase Current Gain for Current Measurement
@@ -325,15 +323,15 @@
 
    The NEVB-MTR1-I56-1 comes with a default current gain factor of 50 and
    a current sense resistor of value 4 mΩ. This corresponds to approximately
-   0.0244 amperes (A) per register value. The default value is 103 which
-   corresponds to approximately 2.5 A.
+   0.0244 amperes (A) per register value. The default value is 307 which
+   corresponds to approximately 7.5 A.
 
    \todo Calculate and set the register value for the current warning threshold.
 
    \see IBUS_ERROR_THRESHOLD, IBUS_FAULT_ENABLE, IBUS_GAIN,
    IBUS_SENSE_RESISTOR
 */
-#define IBUS_WARNING_THRESHOLD 103
+#define IBUS_WARNING_THRESHOLD 307
 
 /*!
    \brief Hi-side Current (IBUS) Error Threshold (Register Value)
@@ -361,8 +359,8 @@
 
    The NEVB-MTR1-I56-1 comes with a default current gain factor of 50 and
    a current sense resistor of value 4 mΩ. This corresponds to approximately
-   0.0244 amperes (A) per register value. The default value is 614 which
-   corresponds to approximately 15 A.
+   0.0244 amperes (A) per register value. The default value is 410 which
+   corresponds to approximately 10 A.
 
    \note Braking is not implemented yet for this fault, so the motor coasts when
    an error occurs.
@@ -372,7 +370,7 @@
    \see IBUS_WARNING_THRESHOLD, IBUS_FAULT_ENABLE, IBUS_GAIN,
    IBUS_SENSE_RESISTOR
 */
-#define IBUS_ERROR_THRESHOLD 614
+#define IBUS_ERROR_THRESHOLD 410
 
 /*!
    \brief Hi-side Current (IBUS) Fault Enable
@@ -385,7 +383,7 @@
 
    \see IBUS_ERROR_THRESHOLD
 */
-#define IBUS_FAULT_ENABLE FALSE
+#define IBUS_FAULT_ENABLE TRUE
 
 /*!
    \brief Speed Control Method
@@ -712,17 +710,14 @@
 // Waveform macro definitions
 //! Waveform constant for block commutation.
 #define WAVEFORM_BLOCK_COMMUTATION 0
-//! Waveform status flag for braking.
-#define WAVEFORM_BRAKING 1
 //! Waveform status flag used for coasting.
 #define WAVEFORM_UNDEFINED 3
 
 // Turn off mode macro definitions
 //! TURN_OFF_MODE value for coasting (disabled drivers).
 #define TURN_OFF_MODE_COAST 0
-//! TURN_OFF_MODE value for braking (drivers pulsed at 50% to dissipate energy
-//! to VIN and GND).
-#define TURN_OFF_MODE_BRAKE 1
+//! TURN_OFF_MODE value for ramping down (drivers ramp to zero speed reference).
+#define TURN_OFF_MODE_RAMP 1
 
 // Speed control macro definitions
 //! Speed control selection for open loop control.
@@ -780,7 +775,7 @@
    actual compilation, it includes the GCC-specific `always_inline` attribute to
    enforce inlining.
 */
-#ifdef __INTELLISENSE__
+#if defined(__INTELLISENSE__) || defined(__DOXYGEN__)
 #define FORCE_INLINE inline
 #else
 #define FORCE_INLINE inline __attribute__((always_inline))
@@ -796,7 +791,7 @@
    address. When parsed by IntelliSense in VSCode, the macro is defined as empty
    to avoid IntelliSense errors.
 */
-#ifdef __INTELLISENSE__
+#if defined(__INTELLISENSE__) || defined(__DOXYGEN__)
 #define FAST_ACCESS(register_address)
 #else
 #define FAST_ACCESS(register_address) __attribute__((address(register_address)))
@@ -1048,6 +1043,8 @@
 */
 typedef struct motorflags
 {
+   //! Reserved bit(s).
+   uint8_t reserved : 7;
    //! Should speed controller run?
    uint8_t speedControllerRun : 1;
    //! Is the remote enabled?
@@ -1060,6 +1057,8 @@ typedef struct motorflags
    uint8_t desiredDirection : 1;
    //! The current waveform that should be produced.
    uint8_t driveWaveform : 2;
+   //! Fatal fault
+   uint8_t fatalFault : 1;
 } motorflags_t;
 
 /*! \brief Collection of all fault flags.
@@ -1085,6 +1084,28 @@ typedef struct faultflags
    //! Is user flag 3 set?
    uint8_t userFlag3 : 1;
 } faultflags_t;
+
+/*! \brief Enumeration of fault flags.
+ */
+typedef enum
+{
+   //! Reserved flag, always false.
+   FAULT_RESERVED,
+   //! Is motor spinning in an unexpected direction?
+   FAULT_REVERSE_DIRECTION,
+   //! Is motor stopped?
+   FAULT_MOTOR_STOPPED,
+   //! Has it tripped the over current limit?
+   FAULT_OVER_CURRENT,
+   //! Is there no hall connections?
+   FAULT_NO_HALL_CONNECTIONS,
+   //! Is user flag 1 set?
+   FAULT_USER_FLAG1,
+   //! Is user flag 2 set?
+   FAULT_USER_FLAG2,
+   //! Is user flag 3 set?
+   FAULT_USER_FLAG3
+} fault_flag_t;
 
 /*! \brief Collection of motor configurations.
 

@@ -161,7 +161,7 @@ SCPI_Parameters::SCPI_Parameters() {}
  * Splits the input string on ',' characters and trims leading whitespace for each parameter.
  * Stores each parameter as a separate element in the array.
  *
- * \param message[in,out] Null-terminated string containing the SCPI parameter message.
+ * \param message Null-terminated string containing the SCPI parameter message.
  */
 SCPI_Parameters::SCPI_Parameters(char *message)
 {
