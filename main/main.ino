@@ -1308,6 +1308,7 @@ ISR(ADC_vect)
     ADCSRB &= ~ADC_MUX_H_BITS;
     ADCSRB |= ADC_MUX_H_IPHASE_U;
 
+#if (IBUS_FAULT_ENABLE == TRUE)
     // Debounce current error flags.
     static uint8_t currentErrorCount = 0;
     if (ibus > IBUS_ERROR_THRESHOLD)
@@ -1325,15 +1326,21 @@ ISR(ADC_vect)
         FatalError();
       }
     }
-    else if (ibus > IBUS_WARNING_THRESHOLD)
+    else
+#endif
+        if (ibus > IBUS_WARNING_THRESHOLD)
     {
       SetFaultFlag(FAULT_OVER_CURRENT, TRUE);
+#if (IBUS_FAULT_ENABLE == TRUE)
       currentErrorCount = 0;
+#endif
     }
     else
     {
       SetFaultFlag(FAULT_OVER_CURRENT, FALSE);
+#if (IBUS_FAULT_ENABLE == TRUE)
       currentErrorCount = 0;
+#endif
     }
     break;
   case (ADC_MUX_H_IPHASE_U | ADC_MUX_L_IPHASE_U):
