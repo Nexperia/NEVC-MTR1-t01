@@ -393,7 +393,7 @@ static void ConfigureMotorFrequency(SCPI_C commands, SCPI_P parameters, Stream &
     uint32_t param;
 
     // Read first parameter if present and within range
-    if (!ScpiParamUInt32(parameters, param) || param < 7183 || param > 100000)
+    if (!ScpiParamUInt32(parameters, param) || param < F_MOSFET_MIN || param > F_MOSFET_MAX)
     {
         scpiParser.last_error = ErrorCode::MissingOrInvalidParameter;
         return;

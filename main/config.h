@@ -85,48 +85,81 @@
 #define MOTOR_POLES 8
 
 /*!
+   \brief Maximum allowed gate switching frequency.
+
+   This macro defines the maximum allowed gate switching frequency for the
+   MOSFET gate signals. The value is used to validate the user input for the
+   gate switching frequency and to set the range for allowed frequencies in
+   remote mode with SCPI commands.
+
+   \todo Specify the maximum allowed gate switching frequency.
+
+   \see F_MOSFET, F_MOSFET_MIN, TIM4_PRESCALER
+*/
+#define F_MOSFET_MAX 100000UL
+
+/*!
+   \brief Minimum allowed gate switching frequency.
+
+   This macro defines the minimum allowed gate switching frequency for the
+   MOSFET gate signals. The value is used to validate the user input for the
+   gate switching frequency and to set the range for allowed frequencies in
+   remote mode with SCPI commands.
+
+   \todo Specify the minimum allowed gate switching frequency.
+
+   \note To support lower frequencies than 7183 Hz, you'll have to modify the code to allow for a higher pre-scaler value for Timer4.
+
+   \see F_MOSFET, F_MOSFET_MAX, TIM4_PRESCALER
+*/
+#define F_MOSFET_MIN 7183UL
+
+/*!
    \brief Desired Switching Frequency for MOSFET Gate Signals
 
    This macro defines the desired switching frequency for the MOSFET gate
-   signals. The resolution of the duty cycle is changes with the selected
-   switching frequency. The best pre-scaler is chose to provide the best
-   resolution.
+   signals. Timer 4 (TIM4) is used to generate the PWM signals that drive the
+   MOSFET gates. The resolution of the duty cycle changes with the selected
+   switching frequency. The best TIM4 pre-scaler is chosen automatically to
+   provide the best resolution.
 
   The absolute PWM Resolution is calculated using the following formula: \f[
-   \text{Absolute PWM Resolution (%)} = \frac{100}{(F_{HST} / (TIM4_{FREQ}
+   \text{Absolute PWM Resolution (%)} = \frac{100}{(F_{HST} / (F_{MOSFET}
    \times TIM4_{PRESCALER} \times 2)) - 1} \f]
 
   Where:
     - \ref F_HST : High-speed system clock frequency, configured to be 64 MHz.
-    - \ref  TIM4_FREQ : The required gate switching frequency.
+    - \ref  F_MOSFET : The required gate switching frequency.
     - TIM4_PRESCALER : The pre-scaler value, which depends on the gate switching
       frequency as explained below.
 
   The TIM4 Pre-scaler is selected based on the gate switching frequency (\ref
-  TIM4_FREQ):
+  F_MOSFET):
     - For frequencies \f$\geq\f$ 31250 Hz, the pre-scaler is set to 1.
     - For frequencies < 31250 Hz and \f$\geq\f$ 15625 Hz, the pre-scaler is set
       to 2.
-    - For frequencies < 15625 Hz and \f$\geq\f$ 7813 Hz, the pre-scaler is set
+    - For frequencies < 15625 Hz and \f$\geq\f$ 7183 Hz, the pre-scaler is set
       to 4.
 
    \image html resolution_vs_frequency_dark.svg "Figure: Absolute PWM resolution across all supported gate switching frequencies."
 
-   \warning The maximum recommended value for TIM4_FREQ is 100 kHz. Please
+   \warning The maximum recommended value for F_MOSFET is 100 kHz. Please
    review this value and uncomment the advisory warning if necessary. You may
    also need to change the values in the scpi.cpp file.
 
-   \warning The minimum value for TIM4_FREQ is 7813 Hz as the higher pre-scalers
+   \warning The minimum value for F_MOSFET is 7183 Hz as the higher pre-scalers
    needed to support this have not been implemented.
 
    \todo Specify the desired gate switching frequency.
+
+   \see F_MOSFET_MAX, F_MOSFET_MIN, TIM4_PRESCALER
 */
-#define TIM4_FREQ 20000UL
-#if TIM4_FREQ > 100000UL
-#error "ADVISORY WARNING: TIM4_FREQ should not be set above 100 kHz. If you want to still continue, please uncomment and compile again."
+#define F_MOSFET 20000UL
+#if (F_MOSFET > F_MOSFET_MAX)
+#error "ADVISORY WARNING: F_MOSFET should not be set above F_MOSFET_MAX."
 #endif
-#if TIM4_FREQ < 7183UL
-#error "ADVISORY WARNING: TIM4_FREQ should not be set below 7183 Hz. If you want to still continue, you'll have to modify the code to allow for a higher pre-scaler value for Timer4."
+#if (F_MOSFET < F_MOSFET_MIN)
+#error "ADVISORY WARNING: F_MOSFET should not be set below F_MOSFET_MIN."
 #endif
 
 /*!
@@ -1147,7 +1180,7 @@ typedef struct motorconfigs
                                                                        : 0)
 
 //! Calculate top value for Timer 4. Formula: TIM4_TOP = (\ref F_HST / (\ref
-//! TIM4_FREQ * TIM4_PRESCALER * 2)).
+//! F_MOSFET * TIM4_PRESCALER * 2)).
 #define TIM4_TOP(tim4Freq) (((F_HST / ((uint32_t)tim4Freq * CHOOSE_TIM4_PRESCALER(tim4Freq))) >> 1) - 1)
 
 //! Maximum top value for Timer 4.
@@ -1236,7 +1269,7 @@ Divide by frequency to get duration.
 
    \section motor_configuration Motor Configuration
    - Configurable motor poles (\ref MOTOR_POLES).
-   - Configurable switching frequency for MOSFET gate signals (\ref TIM4_FREQ).
+   - Configurable switching frequency for MOSFET gate signals (\ref F_MOSFET).
    - Adjustable dead time between switching actions (\ref DEAD_TIME).
    - Option to enable or disable internal pull-up resistors on hall sensor
      inputs (\ref HALL_PULLUP_ENABLE).
