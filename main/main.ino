@@ -290,8 +290,6 @@ void setup(void)
     // Start serial interface with 115200 bauds.
     Serial.begin(115200);
     // while (!Serial); // wait for serial to finish initializing
-    while (!Serial)
-      ; // wait for serial to finish initializing
 
     // Initialise SCPI subsystem if remote mode.
     ScpiInit();
