@@ -95,8 +95,6 @@ void ScpiInit(void)
 #endif
     scpiParser.RegisterCommand(F(":FREQuency"), &ConfigureMotorFrequency);
     scpiParser.RegisterCommand(F(":FREQuency?"), &GetConfigureMotorFrequency);
-    // scpiParser.RegisterCommand(F("DEADtime"), &ConfigureMotorDeadTime);
-    // scpiParser.RegisterCommand(F("DEADtime?"), &GetConfigureMotorDeadTime);
     scpiParser.RegisterCommand(F(":DIREction"), &ConfigureMotorDirection);
     scpiParser.RegisterCommand(F(":DIREction?"), &GetConfigureMotorDirection);
 

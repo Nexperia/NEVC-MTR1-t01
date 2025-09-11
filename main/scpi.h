@@ -239,9 +239,9 @@ void ScpiInput(Stream &interface);
 
      \note Not all mandatory commands are implemented.
 
-     | Command | Description | Parameters | Return Value |
-     |---------|-------------|------------|--------------|
-     | `*IDN?` | Queries the identification string of the instrument. | None. | The identification string. |
+     | Command   | Description                                          | Parameters | Return Value               |
+     |-----------|------------------------------------------------------|------------|----------------------------|
+     | `*IDN?`   | Queries the identification string of the instrument. | None.      | The identification string. |
 
      \subsection scpi_commands_required Required SCPI Commands
 
@@ -250,43 +250,49 @@ void ScpiInput(Stream &interface);
 
      \note Not all mandatory commands are implemented.
 
-     | Command                   | Description                                 | Parameters | Return Value                                   |
-     |---------------------------|---------------------------------------------|------------|------------------------------------------------|
-     | `SYSTem:ERRor?`    | Retrieves the next error from the error queue. | None.     | The next error message or `0, "No error"` if none. |
-     | `SYSTem:ERRor:COUNt?`     | Queries the count of errors in the error queue. | None.    | The number of errors in the queue.              |
+     | Command                   | Description                                     | Parameters | Return Value                                       |
+     |---------------------------|-------------------------------------------------|------------|----------------------------------------------------|
+     | `SYSTem:ERRor?`           | Retrieves the next error from the error queue.  | None.      | The next error message or `0, "No error"` if none. |
+     | `SYSTem:ERRor:COUNt?`     | Queries the count of errors in the error queue. | None.      | The number of errors in the queue.                 |
 
      \subsection scpi_commands_motor Motor Control Commands
 
      Commands specific to motor control.
 
-     | Command                                   | Description                                  | Parameters                                                      | Return Value                                                    |
-     |-------------------------------------------|----------------------------------------------|-----------------------------------------------------------------|-----------------------------------------------------------------|
-     | `CONFigure:ENABle`                  | Configures the motor enable state.           | Boolean (`ON` or `1` to enable, `OFF` or `0` to disable).       | None or error code and message if incorrect parameter.          |
-     | `CONFigure:ENABle?`                 | Queries the motor enable state.              | None.                                                           | Boolean state of the motor (`1` if enabled or `0` if disabled). |
-     | `CONFigure:FREQuency`          | Sets the gate drive frequency for the motor. | Frequency value in Hertz (Hz). Minimum `7183` Hz, maximum `100000` Hz. | None or error code and message if the frequency is out of range. |
-     | `CONFigure:FREQuency?`         | Queries the gate drive frequency.            | None.                                                           | Current gate drive frequency in Hertz (Hz).                     |
-     | `CONFigure:DIREction`               | Sets the motor direction.                    | Direction value (`FORWard` or `REVErse`).                      | None or error code and message if incorrect parameter.          |
-     | `CONFigure:DIREction?`              | Queries the motor direction.                 | None.                                                           | The configured motor direction as a string (`FORWard` or `REVErse`). |
-     | `MEASure:SPEEd?`                    | Measures the motor speed.                    | None.                                                           | Motor speed in revolutions per minute (RPM).                    |
-     | `MEASure:CURRent?`                  | Measures the motor current.                  | None.                                                           | Motor current in Amperes (A).                                   |
-     | `MEASure:DIREction?`                | Measures the motor direction.                | None.                                                           | The motor direction as a string (`FORWard`, `REVErse` or `UNKNown`). |
-     | `MEASure:VOLTage?`             | Measures the gate voltage.                   | None.                                                           | Gate voltage in Volts (V).                                      |
+     | Command                     | Description                              | Parameters                                                         | Return Value                                                     |
+     |-----------------------------|------------------------------------------|--------------------------------------------------------------------|-----------------------------------------------------------------|
+     | `CONFigure:ENABle`          | Configures the motor enable state.       | Boolean (`ON` or `1` to enable, `OFF` or `0` to disable).          | None, or error code and message if incorrect parameter.          |
+     | `CONFigure:ENABle?`         | Queries the motor enable state.          | None.                                                              | Boolean state of the motor (`1` if enabled, `0` if disabled).    |
+     | `CONFigure:FREQuency`       | Sets the gate drive frequency.           | Frequency in Hertz (Hz). Min: `7183` Hz, Max: `100000` Hz.         | None, or error code and message if the frequency is out of range. |
+     | `CONFigure:FREQuency?`      | Queries the gate drive frequency.        | None.                                                              | Current gate drive frequency in Hertz (Hz).                      |
+     | `CONFigure:DIREction`       | Sets the motor direction.                | Direction (`FORWard` or `REVErse`).                                | None, or error code and message if incorrect parameter.          |
+     | `CONFigure:DIREction?`      | Queries the motor direction.             | None.                                                              | The configured motor direction (`FORWard` or `REVErse`).         |
+     | `MEASure:SPEEd?`            | Measures the motor speed.                | None.                                                              | Motor speed in revolutions per minute (RPM).                     |
+     | `MEASure:CURRent:IBUS?`     | Measures the high-side bus current.      | None.                                                              | Motor current in Amperes (A).                                    |
+     | `MEASure:CURRent:IPHU?`     | Measures the in-line phase U current.    | None.                                                              | Phase current in Amperes (A).                                    |
+     | `MEASure:CURRent:IPHV?`     | Measures the in-line phase V current.    | None.                                                              | Phase current in Amperes (A).                                    |
+     | `MEASure:CURRent:IPHW?`     | Measures the in-line phase W current.    | None.                                                              | Phase current in Amperes (A).                                    |
+     | `MEASure:DIREction?`        | Measures the motor direction.            | None.                                                              | Motor direction as a string (`FORWard`, `REVErse`, `UNKNown`).   |
+     | `MEASure:DUTYcycle?`        | Measures the motor duty cycle.           | None.                                                              | Motor duty cycle as a percentage (%).                            |
+     | `MEASure:VOLTage?`          | Measures the gate voltage.               | None.                                                              | Gate voltage in Volts (V).                                       |
 
      These commands are only available when \ref SPEED_CONTROL_METHOD is \ref
      SPEED_CONTROL_OPEN_LOOP.
 
-     | Command                                   | Description                                  | Parameters                                                      | Return Value                                                    |
-     |-------------------------------------------|----------------------------------------------|-----------------------------------------------------------------|-----------------------------------------------------------------|
-     | `CONFigure:DUTYcycle:SOURce`   | Sets the duty cycle source for the motor.    | `0` for local (speed input pin) and `1` for remote.             | None or error code and message if incorrect parameter.          |
-     | `CONFigure:DUTYcycle`          | Sets the duty cycle for the motor.           | Duty cycle in percentage (%). Minimum 0.0 %, maximum 100.0 %    | None or error code and message if incorrect parameter.          |
+     | Command                      | Description                               | Parameters                                                      | Return Value                                                    |
+     |------------------------------|-------------------------------------------|-----------------------------------------------------------------|-----------------------------------------------------------------|
+     | `CONFigure:DUTYcycle:SOURce` | Sets the duty cycle source for the motor. | `0` for local (speed input pin), `1` for remote.                 | None, or error code and message if incorrect parameter.          |
+     | `CONFigure:DUTYcycle:SOURce?`| Queries the duty cycle source.            | None.                                                           | Current duty cycle source (`0` = local, `1` = remote).           |
+     | `CONFigure:DUTYcycle`        | Sets the duty cycle for the motor.        | Duty cycle in percentage (%). Min: `0.0 %`, Max: `100.0 %`.      | None, or error code and message if incorrect parameter.          |
 
      These commands are only available when \ref SPEED_CONTROL_METHOD is \ref
      SPEED_CONTROL_CLOSED_LOOP.
 
-     | Command                          | Description                             | Parameters                                                      | Return Value                                                    |
-     |----------------------------------|-----------------------------------------|-----------------------------------------------------------------|-----------------------------------------------------------------|
-     | `CONFigure:SPEEd:SOURce`   | Sets the speed source for the motor.    | `0` for local (speed input pin) and `1` for remote.             | None or error code and message if incorrect parameter.          |
-     | `CONFigure:SPEEd`          | Sets the speed for the motor.           | Speed in revolutions per minute (RPM). Minimum 0 RPM, maximum \ref SPEED_CONTROLLER_MAX_SPEED | None or error code and message if incorrect parameter. |
+     | Command                     | Description                             | Parameters                                                                 | Return Value                                                    |
+     |-----------------------------|-----------------------------------------|----------------------------------------------------------------------------|-----------------------------------------------------------------|
+     | `CONFigure:SPEEd:SOURce`    | Sets the speed source for the motor.    | `0` for local (speed input pin), `1` for remote.                           | None, or error code and message if incorrect parameter.          |
+     | `CONFigure:SPEEd:SOURce?`   | Queries the speed source for the motor. | None.                                                                      | Current speed source (`0` = local, `1` = remote).                |
+     | `CONFigure:SPEEd`           | Sets the speed for the motor.           | Speed in revolutions per minute (RPM). Min: `0`, Max: \ref SPEED_CONTROLLER_MAX_SPEED | None, or error code and message if incorrect parameter.          |
 
      \subsection scpi_commands_conclusion Conclusion
 
