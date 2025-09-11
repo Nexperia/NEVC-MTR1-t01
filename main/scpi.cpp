@@ -123,7 +123,7 @@ void ScpiInit(void)
  */
 void ScpiInput(Stream &interface)
 {
-    scpiParser.ProcessInput(interface, "\n");
+    scpiParser.ProcessInput(interface, SCPI_CMD_TERM);
 }
 
 /**
@@ -139,16 +139,16 @@ void ScpiInput(Stream &interface)
  */
 static void ScpiCoreIdnQ(SCPI_C commands, SCPI_P parameters, Stream &interface)
 {
-    interface.print(F(SCPI_IDN1));
+    interface.print(F(SCPI_IDN_MANUFACTURER));
     interface.print(F(","));
-    interface.print(F(SCPI_IDN2));
+    interface.print(F(SCPI_IDN_MODEL));
     interface.print(F(","));
-    if (SCPI_IDN3 != NULL && strlen(SCPI_IDN3) > 0)
+    if (SCPI_IDN_DEFAULT_SERIAL != NULL && strlen(SCPI_IDN_DEFAULT_SERIAL) > 0)
     {
-        interface.print(F(SCPI_IDN3));
-        interface.print(F(","));
+        interface.print(F(SCPI_IDN_DEFAULT_SERIAL));
     }
-    interface.println(F(SCPI_IDN4));
+    interface.print(F(","));
+    interface.println(F(SCPI_IDN_FIRMWARE_VERSION));
 }
 
 /**
