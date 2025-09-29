@@ -290,8 +290,6 @@ void setup(void)
     // Start serial interface with 115200 bauds.
     Serial.begin(115200);
     // while (!Serial); // wait for serial to finish initializing
-    while (!Serial)
-      ; // wait for serial to finish initializing
 
     // Initialise SCPI subsystem if remote mode.
     ScpiInit();
@@ -367,7 +365,7 @@ static void FlagsInit(void)
 */
 static void ConfigsInit(void)
 {
-  motorConfigs.tim4Freq = (uint32_t)TIM4_FREQ;
+  motorConfigs.tim4Freq = (uint32_t)F_MOSFET;
   motorConfigs.tim4Top = (uint16_t)TIM4_TOP(motorConfigs.tim4Freq);
   motorConfigs.tim4DeadTime = (uint16_t)DEAD_TIME;
   motorConfigs.speedInputSource = (uint8_t)SPEED_INPUT_SOURCE_LOCAL;
@@ -491,7 +489,7 @@ void TimersInit(void)
   DT4 = (DEAD_TIME_HALF(motorConfigs.tim4DeadTime) << 4) | DEAD_TIME_HALF(motorConfigs.tim4DeadTime);
 
   // Start Timer4.
-  TCCR4B |= TIM4_PRESCALER_DIV_PATTERN(CHOOSE_TIM4_PRESCALER(TIM4_FREQ));
+  TCCR4B |= TIM4_PRESCALER_DIV_PATTERN(CHOOSE_TIM4_PRESCALER(F_MOSFET));
 }
 
 /*! \brief Initialize pin change interrupts.
@@ -1192,7 +1190,7 @@ ISR(INT2_vect)
    commutation ticks, which determines motor status. It also controls the
    execution of the speed regulation loop at constant intervals.
 
-   \see TimersInit(), TIM4_FREQ
+   \see TimersInit(), F_MOSFET
 */
 ISR(TIMER4_OVF_vect)
 {
@@ -1308,6 +1306,7 @@ ISR(ADC_vect)
     ADCSRB &= ~ADC_MUX_H_BITS;
     ADCSRB |= ADC_MUX_H_IPHASE_U;
 
+#if (IBUS_FAULT_ENABLE == TRUE)
     // Debounce current error flags.
     static uint8_t currentErrorCount = 0;
     if (ibus > IBUS_ERROR_THRESHOLD)
@@ -1325,15 +1324,21 @@ ISR(ADC_vect)
         FatalError();
       }
     }
-    else if (ibus > IBUS_WARNING_THRESHOLD)
+    else
+#endif
+        if (ibus > IBUS_WARNING_THRESHOLD)
     {
       SetFaultFlag(FAULT_OVER_CURRENT, TRUE);
+#if (IBUS_FAULT_ENABLE == TRUE)
       currentErrorCount = 0;
+#endif
     }
     else
     {
       SetFaultFlag(FAULT_OVER_CURRENT, FALSE);
+#if (IBUS_FAULT_ENABLE == TRUE)
       currentErrorCount = 0;
+#endif
     }
     break;
   case (ADC_MUX_H_IPHASE_U | ADC_MUX_L_IPHASE_U):

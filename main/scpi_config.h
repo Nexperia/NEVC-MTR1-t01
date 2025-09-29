@@ -105,25 +105,25 @@
 #define SCPI_HASH_TYPE uint8_t
 
 // SCPI Identification Definitions
-/*! \def SCPI_IDN1
+/*! \def SCPI_IDN_MANUFACTURER
  * \brief Manufacturer identification string for the `*IDN?` command.
  *
  * \details
  * This constant defines the first field of the identification string returned by
  * the standard SCPI `*IDN?` command. Default value is "NEXPERIA".
  */
-#define SCPI_IDN1 "NEXPERIA"
+#define SCPI_IDN_MANUFACTURER "NEXPERIA"
 
-/*! \def SCPI_IDN2
+/*! \def SCPI_IDN_MODEL
  * \brief Model number identification string for the `*IDN?` command.
  *
  * \details
  * This constant defines the second field of the identification string returned by
  * the standard SCPI `*IDN?` command. Default value is "NEVB-MTR1-xx".
  */
-#define SCPI_IDN2 "NEVB-MTR1-xx"
+#define SCPI_IDN_MODEL "NEVB-MTR1-xx"
 
-/*! \def SCPI_IDN3
+/*! \def SCPI_IDN_DEFAULT_SERIAL
  * \brief Revision level identification string for the `*IDN?` command (optional).
  *
  * \details
@@ -131,9 +131,9 @@
  * the standard SCPI `*IDN?` command. It is often left empty if no specific
  * revision information is needed. Default value is "".
  */
-#define SCPI_IDN3 ""
+#define SCPI_IDN_DEFAULT_SERIAL ""
 
-/*! \def SCPI_IDN4
+/*! \def SCPI_IDN_FIRMWARE_VERSION
  * \brief Firmware version identification string for the `*IDN?` command.
  *
  * \details
@@ -141,6 +141,17 @@
  * the standard SCPI `*IDN?` command, typically representing the firmware version.
  * Default value is "NEVC-MTR1-t01-1.0.0".
  */
-#define SCPI_IDN4 "NEVC-MTR1-t01-1.0.0"
+#define SCPI_IDN_FIRMWARE_VERSION "NEVC-MTR1-t01-1.0.0"
+
+/*! \def SCPI_CMD_TERM
+ * \brief Command termination character used to identify the end of a SCPI command.
+ *
+ * \details
+ * This constant defines the character that signifies the end of a SCPI command
+ * in the input stream. The parser uses this character to determine when a complete
+ * command has been received and is ready for processing. Default value is "\n"
+ * (newline character).
+ */
+#define SCPI_CMD_TERM "\n"
 
 #endif
