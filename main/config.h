@@ -725,6 +725,8 @@
 #define ENABLE_PIN PD0
 //! Remote input pin.
 #define REMOTE_PIN PD3
+//! IBUS ADC input pin (used to check if board is attached).
+#define IBUS_PIN PF5
 
 // Speed Input Source definitions (only during remote mode)
 //! Speed input source - Local or speed input pin.

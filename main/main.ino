@@ -274,6 +274,9 @@ void setup(void)
 
   // Check if remote mode requested.
   RemoteUpdate();
+  Serial.begin(115200);
+  while (!Serial)
+    ;
 
   // Initialize peripherals.
   PortsInit(); // depends on motorFlags.remote
@@ -535,9 +538,9 @@ static void PinChangeIntInit(void)
 */
 static void ADCInit(void)
 {
-  // Select initial AD conversion channel [0V for self-test].
-  ADMUX = (ADC_REFERENCE_VOLTAGE | (1 << ADLAR) | ADC_MUX_L_0V);
-  ADCSRB = ADC_MUX_H_0V;
+  // Select initial AD conversion channel [IBUS] to check if board is connected.
+  ADMUX = (ADC_REFERENCE_VOLTAGE | (1 << ADLAR) | ADC_MUX_L_IBUS);
+  ADCSRB = ADC_MUX_H_IBUS;
   _delay_ms(1);
 
   // Enable ADC
@@ -546,61 +549,29 @@ static void ADCInit(void)
   // Start ADC single conversion and discard first measurement.
   uint16_t adc_reading = ADCSingleConversion();
 
-  // Start ADC single conversion to measure 0V, this time it is correct.
-  adc_reading = ADCSingleConversion();
-
-  // Check if ADC can measure 0V within 10mV.
-  if (adc_reading > 2)
-  {
-    SetFaultFlag(FAULT_USER_FLAG1, TRUE);
-    SetFaultFlag(FAULT_USER_FLAG2, FALSE);
-    SetFaultFlag(FAULT_USER_FLAG3, FALSE);
-    FatalError();
-  }
-
-  // Select next AD conversion channel [1V1 for self-test].
-  ADMUX = (ADC_REFERENCE_VOLTAGE | (1 << ADLAR) | ADC_MUX_L_1V1);
-  ADCSRB = ADC_MUX_H_1V1;
-  _delay_ms(1);
-
-  // Start ADC single conversion to measure 1V1.
-  adc_reading = ADCSingleConversion();
-
-  // Check if ADC can measure 1.1V within 1% (1.09 to 1.1V).
-  if ((adc_reading < 223) || (adc_reading > 227))
-  {
-    SetFaultFlag(FAULT_USER_FLAG1, TRUE);
-    SetFaultFlag(FAULT_USER_FLAG2, FALSE);
-    SetFaultFlag(FAULT_USER_FLAG3, FALSE);
-    FatalError();
-  }
-
-  // Select next AD conversion channel [BREF].
-  ADMUX = (ADC_REFERENCE_VOLTAGE | (1 << ADLAR) | ADC_MUX_L_IBUS);
-  ADCSRB = ADC_MUX_H_IBUS;
-
   // Enable pull up resistor
-  PORTF |= (1 << PF0);
+  PORTF |= (1 << IBUS_PIN);
 
   _delay_ms(1);
   SweepLEDsBlocking();
 
   // Start ADC single conversion to measure BREF.
   adc_reading = ADCSingleConversion();
+  Serial.println(adc_reading);
 
-  // Wait to check if any board is connected. Should be anything other than
-  // 0x3ff if any board is connected assuming BREF of the board is not equal to
-  // IOREF.
-  while (adc_reading == 0x3ff)
+  // Wait to check if any board is connected. Should be less than
+  // 0x3C0 if the inverter board is connected
+  while (adc_reading > 0x3C0)
   {
     SweepLEDsBlocking();
 
     // Start ADC single conversion to measure BREF.
     adc_reading = ADCSingleConversion();
+    Serial.println(adc_reading);
   }
 
   // Disable pull up resistor
-  PORTF &= ~(1 << PF0);
+  PORTF &= ~(1 << IBUS_PIN);
 
   // Re-initialize ADC mux channel select.
   ADMUX &= ~ADC_MUX_L_BITS;
