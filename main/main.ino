@@ -274,9 +274,6 @@ void setup(void)
 
   // Check if remote mode requested.
   RemoteUpdate();
-  Serial.begin(115200);
-  while (!Serial)
-    ;
 
   // Initialize peripherals.
   PortsInit(); // depends on motorFlags.remote
