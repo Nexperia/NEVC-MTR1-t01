@@ -535,6 +535,7 @@ static void PinChangeIntInit(void)
 */
 static void ADCInit(void)
 {
+#if (WAIT_FOR_BOARD == TRUE)
   // Select initial AD conversion channel [IBUS] to check if board is connected.
   ADMUX = (ADC_REFERENCE_VOLTAGE | (1 << ADLAR) | ADC_MUX_L_IBUS);
   ADCSRB = ADC_MUX_H_IBUS;
@@ -549,7 +550,7 @@ static void ADCInit(void)
   // Enable pull up resistor
   PORTF |= (1 << IBUS_PIN);
 
-  _delay_ms(1);
+  _delay_ms(10);
   SweepLEDsBlocking();
 
   // Start ADC single conversion to measure BREF.
@@ -563,10 +564,21 @@ static void ADCInit(void)
 
     // Start ADC single conversion to measure BREF.
     adc_reading = ADCSingleConversion();
+
+    _delay_ms(10);
   }
 
   // Disable pull up resistor
   PORTF &= ~(1 << IBUS_PIN);
+
+  _delay_ms(10);
+
+#else
+  // Select AD reference voltage and left adjust result.
+  ADMUX = (ADC_REFERENCE_VOLTAGE | (1 << ADLAR));
+
+  SweepLEDsBlocking();
+#endif
 
   // Re-initialize ADC mux channel select.
   ADMUX &= ~ADC_MUX_L_BITS;
