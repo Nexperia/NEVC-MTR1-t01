@@ -554,7 +554,6 @@ static void ADCInit(void)
 
   // Start ADC single conversion to measure BREF.
   adc_reading = ADCSingleConversion();
-  Serial.println(adc_reading);
 
   // Wait to check if any board is connected. Should be less than
   // 0x3C0 if the inverter board is connected
@@ -564,7 +563,6 @@ static void ADCInit(void)
 
     // Start ADC single conversion to measure BREF.
     adc_reading = ADCSingleConversion();
-    Serial.println(adc_reading);
   }
 
   // Disable pull up resistor
