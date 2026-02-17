@@ -141,7 +141,7 @@
  * the standard SCPI `*IDN?` command, typically representing the firmware version.
  * Default value is "NEVC-MTR1-t01-1.0.0".
  */
-#define SCPI_IDN_FIRMWARE_VERSION "NEVC-MTR1-t01-1.0.0"
+#define SCPI_IDN_FIRMWARE_VERSION "NEVC-MTR1-t01-1.1.0"
 
 /*! \def SCPI_CMD_TERM
  * \brief Command termination character used to identify the end of a SCPI command.
