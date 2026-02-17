@@ -416,7 +416,7 @@
 
    \see IBUS_ERROR_THRESHOLD
 */
-#define IBUS_FAULT_ENABLE FALSE
+#define IBUS_FAULT_ENABLE TRUE
 
 /*!
    \brief Speed Control Method
@@ -630,7 +630,7 @@
 
    \see IBUS_PIN, IBUS_SENSE_RESISTOR, IBUS_GAIN, IBUS_FAULT_ENABLE
 */
-#define WAIT_FOR_BOARD FALSE
+#define WAIT_FOR_BOARD TRUE
 #if (WAIT_FOR_BOARD == FALSE) && (IBUS_FAULT_ENABLE == TRUE)
 #warning "CONFIG WARNING: IBUS_FAULT_ENABLE is TRUE while WAIT_FOR_BOARD is FALSE - IBUS ADC may float when inverter not connected, causing false OC faults"
 #endif
