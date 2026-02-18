@@ -606,6 +606,36 @@
 #define VBUS_RBOTTOM 6200
 
 /*!
+   \brief Wait for inverter board connection before starting execution.
+
+   When set to TRUE the firmware will wait for the inverter board to be
+   connected (detected via the IBUS measurement) before enabling motor
+   functionality and proceeding with normal operation. This helps prevent
+   accidental startup when the inverter is not present.
+
+   Set to FALSE to skip the check and start immediately.
+
+   \note If IBUS_FAULT_ENABLE is set to TRUE and WAIT_FOR_BOARD is set to FALSE,
+   the IBUS ADC input can be floating when the inverter board is not connected.
+   A floating IBUS input may produce spurious ADC readings and trigger false
+   over-current (IBUS) faults. To avoid false faults either:
+     - Enable WAIT_FOR_BOARD so the firmware waits for the inverter before
+       enabling IBUS-based fault handling, or
+     - Disable IBUS_FAULT_ENABLE if you cannot ensure a valid IBUS measurement
+       when the board is disconnected, or
+     - Provide a defined pull-down/hold on the IBUS ADC pin when the inverter
+       is absent.
+
+   \todo Enable or disable board-wait behavior by assigning TRUE or FALSE.
+
+   \see IBUS_PIN, IBUS_SENSE_RESISTOR, IBUS_GAIN, IBUS_FAULT_ENABLE
+*/
+#define WAIT_FOR_BOARD TRUE
+#if (WAIT_FOR_BOARD == FALSE) && (IBUS_FAULT_ENABLE == TRUE)
+#warning "CONFIG WARNING: IBUS_FAULT_ENABLE is TRUE while WAIT_FOR_BOARD is FALSE - IBUS ADC may float when inverter not connected, causing false OC faults"
+#endif
+
+/*!
    \brief Set the remote debug mode.
 
    When in remote debug mode, errors are immediately reported back on the serial
@@ -725,6 +755,8 @@
 #define ENABLE_PIN PD0
 //! Remote input pin.
 #define REMOTE_PIN PD3
+//! IBUS ADC input pin (used to check if board is attached).
+#define IBUS_PIN PF5
 
 // Speed Input Source definitions (only during remote mode)
 //! Speed input source - Local or speed input pin.
