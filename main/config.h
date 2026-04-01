@@ -658,7 +658,7 @@
 //! FALSE constant value.
 #define FALSE 0
 //! TRUE constant value, defined to be compatible with comparisons.
-#define TRUE (!FALSE)
+#define TRUE 1
 
 //! High-speed system clock frequency.
 #define F_HST 64000000UL

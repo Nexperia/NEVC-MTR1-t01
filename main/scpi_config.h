@@ -111,16 +111,6 @@
  */
 #define SCPI_IDN_MODEL "NEVB-MTR1-xx"
 
-/*! \def SCPI_IDN_DEFAULT_SERIAL
- * \brief Revision level identification string for the `*IDN?` command (optional).
- *
- * \details
- * This constant defines the third field of the identification string returned by
- * the standard SCPI `*IDN?` command. It is often left empty if no specific
- * revision information is needed. Default value is "".
- */
-#define SCPI_IDN_DEFAULT_SERIAL ""
-
 /*! \def SCPI_IDN_FIRMWARE_VERSION
  * \brief Firmware version identification string for the `*IDN?` command.
  *

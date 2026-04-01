@@ -243,6 +243,53 @@ void ScpiInput(Stream &interface);
      |-----------|------------------------------------------------------|------------|----------------------------|
      | `*IDN?`   | Queries the identification string of the instrument. | None.      | The identification string. |
 
+     \subsubsection scpi_idn_format *IDN? Response Format
+
+     The identification string has four comma-separated fields:
+
+     `<Manufacturer>,<Model>,<Serial>,<FirmwareVersion>`
+
+     The `<Serial>` field encodes the firmware configuration from `config.h` as
+     26 hyphen-separated hexadecimal values (no `0x` prefix, uppercase). The
+     field is generated at runtime, so it always reflects the values that were
+     compiled in, regardless of any type suffixes used in the source.
+
+     Field order:
+
+     | Index | Config Parameter                | Description                                 |
+     |-------|---------------------------------|---------------------------------------------|
+     | 0     | `MOTOR_POLES`                   | Number of motor poles                       |
+     | 1     | `F_MOSFET`                      | Gate switching frequency (Hz)               |
+     | 2     | `DEAD_TIME`                     | Dead time (ns)                              |
+     | 3     | `EMULATE_HALL`                  | Hall emulation enable (0/1)                 |
+     | 4     | `TIM3_FREQ`                     | Emulated motor electrical frequency (Hz)    |
+     | 5     | `COMMUTATION_TICKS_STOPPED`     | Ticks before motor considered stopped       |
+     | 6     | `TURN_OFF_MODE`                 | Turn-off mode (0=coast, 1=ramp)             |
+     | 7     | `IPHASE_GAIN`                   | In-line phase current amplifier gain        |
+     | 8     | `IPHASE_SENSE_RESISTOR`         | Phase current sense resistor (μΩ)           |
+     | 9     | `IBUS_GAIN`                     | Bus current amplifier gain                  |
+     | 10    | `IBUS_SENSE_RESISTOR`           | Bus current sense resistor (μΩ)             |
+     | 11    | `IBUS_WARNING_THRESHOLD`        | Bus current warning threshold (ADC counts)  |
+     | 12    | `IBUS_ERROR_THRESHOLD`          | Bus current error threshold (ADC counts)    |
+     | 13    | `IBUS_FAULT_ENABLE`             | Bus current fault enable (0/1)              |
+     | 14    | `SPEED_CONTROL_METHOD`          | Speed control method (0=open, 1=closed)     |
+     | 15    | `SPEED_CONTROLLER_TIME_BASE`    | Speed loop time base (ticks)                |
+     | 16    | `SPEED_CONTROLLER_MAX_DELTA`    | Max speed change per iteration (open loop)  |
+     | 17    | `SPEED_CONTROLLER_MAX_SPEED`    | Max speed reference (closed loop)           |
+     | 18    | `PID_K_P`                       | PID proportional gain                       |
+     | 19    | `PID_K_I`                       | PID integral gain                           |
+     | 20    | `PID_K_D_ENABLE`                | PID derivative enable (0/1)                 |
+     | 21    | `PID_K_D`                       | PID derivative gain                         |
+     | 22    | `VBUS_RTOP`                     | VBUS divider top resistor (Ω)               |
+     | 23    | `VBUS_RBOTTOM`                  | VBUS divider bottom resistor (Ω)            |
+     | 24    | `WAIT_FOR_BOARD`                | Wait for inverter board enable (0/1)        |
+     | 25    | `REMOTE_DEBUG_MODE`             | Remote debug mode enable (0/1)              |
+
+     Example response:
+     ```
+     NEXPERIA,NEVB-MTR1-xx,8-4E20-15E-0-C8-1770-1-14-9C4-32-FA0-133-19A-1-0-C8-1-190-64-A-1-0-186A0-1838-1-0,NEVC-MTR1-t01-1.1.0
+     ```
+
      \subsection scpi_commands_required Required SCPI Commands
 
      These commands are some of the required commands as per SCPI standard
