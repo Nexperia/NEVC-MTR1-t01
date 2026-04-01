@@ -114,7 +114,7 @@ void ScpiInput(Stream &interface);
 
      SCPI commands typically follow a hierarchical structure resembling a file
      path, starting with a root and followed by nodes separated by colons or
-     semicolons. For example: `MEASure:VOLTage:DC?`.
+     semicolons. For example: `MEASure:VOLTage?`.
 
      - \b Root: Usually an abbreviation of the instrument function (e.g.,
        `MEASure`).
@@ -165,7 +165,7 @@ void ScpiInput(Stream &interface);
 
      - Query the device identification: `*IDN?`
      - Set the motor direction: `CONFigure:DIREction FORWard`
-     - Measure voltage: `MEASure:VOLTage:DC?`
+     - Measure voltage: `MEASure:VOLTage?`
      - Enable motor:
           - Standard command: `CONFigure:ENABle ON`
           - Mixed case: `conFigure:enabLE ON`
@@ -274,7 +274,7 @@ void ScpiInput(Stream &interface);
      | `MEASure:CURRent:IPHW?`     | Measures the in-line phase W current.    | None.                                                              | Phase current in Amperes (A).                                    |
      | `MEASure:DIREction?`        | Measures the motor direction.            | None.                                                              | Motor direction as a string (`FORWard`, `REVErse`, `UNKNown`).   |
      | `MEASure:DUTYcycle?`        | Measures the motor duty cycle.           | None.                                                              | Motor duty cycle as a percentage (%).                            |
-     | `MEASure:VOLTage?`          | Measures the gate voltage.               | None.                                                              | Gate voltage in Volts (V).                                       |
+     | `MEASure:VOLTage?`          | Measures the system voltage.             | None.                                                              | System voltage in Volts (V).                                     |
 
      These commands are only available when \ref SPEED_CONTROL_METHOD is \ref
      SPEED_CONTROL_OPEN_LOOP.
