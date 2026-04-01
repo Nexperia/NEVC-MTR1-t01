@@ -530,13 +530,13 @@ void SCPI_Parser::PrintDebugInfo(Stream &interface)
 {
   interface.println(F("*** DEBUG INFO ***\n"));
   interface.print(F("Max command tree branches: "));
-  interface.print(SCPI_ARRAY_SYZE);
-  interface.println(F(" (SCPI_ARRAY_SYZE)"));
+  interface.print(SCPI_ARRAY_SIZE);
+  interface.println(F(" (SCPI_ARRAY_SIZE)"));
   if (setup_errors.branch_overflow)
     interface.println(F(" **ERROR** Max branch size exceeded."));
   interface.print(F("Max number of parameters: "));
-  interface.print(SCPI_ARRAY_SYZE);
-  interface.println(F(" (SCPI_ARRAY_SYZE)"));
+  interface.print(SCPI_ARRAY_SIZE);
+  interface.println(F(" (SCPI_ARRAY_SIZE)"));
   interface.print(F("Message buffer size: "));
   interface.print(buffer_length);
   interface.println(F(" (SCPI_BUFFER_LENGTH)\n"));
