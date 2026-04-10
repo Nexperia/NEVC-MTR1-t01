@@ -111,15 +111,25 @@
  */
 #define SCPI_IDN_MODEL "NEVB-MTR1-xx"
 
+/*! \def FIRMWARE_VERSION
+ * \brief Firmware version string — the single source of truth for the version number.
+ *
+ * \details
+ * Update this value when releasing a new firmware version. It is used to compose
+ * \ref SCPI_IDN_FIRMWARE_VERSION automatically via C string-literal concatenation.
+ * Format: "MAJOR.MINOR.PATCH" (e.g. "1.1.0")
+ */
+#define FIRMWARE_VERSION "1.1.0"
+
 /*! \def SCPI_IDN_FIRMWARE_VERSION
  * \brief Firmware version identification string for the `*IDN?` command.
  *
  * \details
  * This constant defines the fourth field of the identification string returned by
  * the standard SCPI `*IDN?` command, typically representing the firmware version.
- * Default value is "NEVC-MTR1-t01-1.0.0".
+ * Built automatically from \ref FIRMWARE_VERSION.
  */
-#define SCPI_IDN_FIRMWARE_VERSION "NEVC-MTR1-t01-1.1.0"
+#define SCPI_IDN_FIRMWARE_VERSION "NEVC-MTR1-t01-" FIRMWARE_VERSION
 
 /*! \def SCPI_CMD_TERM
  * \brief Command termination character used to identify the end of a SCPI command.
