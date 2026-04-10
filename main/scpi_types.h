@@ -44,7 +44,7 @@
  * the respective elements in the array.
  *
  * Overflow protection is built-in, and the array size is bounded by
- * the compile-time constant \c SCPI_ARRAY_SYZE.
+ * the compile-time constant \c SCPI_ARRAY_SIZE.
  */
 class SCPI_String_Array
 {
@@ -56,10 +56,10 @@ public:
   char *Last() const;                           ///< Get the last appended string.
   uint8_t Size() const;                         ///< Get the number of stored strings.
   bool overflow_error = false;                  ///< Flag set when exceeding \c storage_size.
-  const uint8_t storage_size = SCPI_ARRAY_SYZE; ///< Max number of entries allowed.
+  const uint8_t storage_size = SCPI_ARRAY_SIZE; ///< Max number of entries allowed.
 protected:
   uint8_t size_ = 0;              ///< Current size of the array.
-  char *values_[SCPI_ARRAY_SYZE]; ///< Internal storage for string pointers.
+  char *values_[SCPI_ARRAY_SIZE]; ///< Internal storage for string pointers.
 };
 
 /*!

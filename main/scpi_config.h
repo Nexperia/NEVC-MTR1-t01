@@ -25,18 +25,6 @@
 #ifndef _SCPI_CONFIG_H_
 #define _SCPI_CONFIG_H_
 
-/*!
- * \file scpi_config.h
- * \brief Header file for SCPI parser configuration.
- *
- * \details
- * This header file defines various configuration constants for the SCPI parser library.
- * These constants control the sizes of internal buffers and arrays, the maximum
- * number of supported tokens and commands, and the data type used for command hashing.
- * Users can modify these definitions to adjust the parser's capabilities and memory
- * usage according to their specific application requirements.
- */
-
 /*! \def SCPI_MAX_TOKENS
  * \brief Maximum number of valid SCPI tokens (keywords) that the parser can recognize.
  *
@@ -82,7 +70,7 @@
  */
 #define SCPI_BUFFER_LENGTH 64
 
-/*! \def SCPI_ARRAY_SYZE
+/*! \def SCPI_ARRAY_SIZE
  * \brief Maximum branch size of the command tree and the maximum number of parameters that can be parsed from a command.
  *
  * \details
@@ -91,7 +79,7 @@
  * limits the maximum number of parameters that the parser will attempt to extract
  * from a received command. Default value is 6.
  */
-#define SCPI_ARRAY_SYZE 6
+#define SCPI_ARRAY_SIZE 6
 
 /*! \def SCPI_HASH_TYPE
  * \brief Integer data type used for calculating and storing command hash codes.
@@ -122,16 +110,6 @@
  * the standard SCPI `*IDN?` command. Default value is "NEVB-MTR1-xx".
  */
 #define SCPI_IDN_MODEL "NEVB-MTR1-xx"
-
-/*! \def SCPI_IDN_DEFAULT_SERIAL
- * \brief Revision level identification string for the `*IDN?` command (optional).
- *
- * \details
- * This constant defines the third field of the identification string returned by
- * the standard SCPI `*IDN?` command. It is often left empty if no specific
- * revision information is needed. Default value is "".
- */
-#define SCPI_IDN_DEFAULT_SERIAL ""
 
 /*! \def SCPI_IDN_FIRMWARE_VERSION
  * \brief Firmware version identification string for the `*IDN?` command.
