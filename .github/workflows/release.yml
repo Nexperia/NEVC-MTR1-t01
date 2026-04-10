@@ -1,0 +1,71 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      # Strip leading 'v' from tag  →  e.g. v1.2.0 → 1.2.0
+      - name: Extract version
+        id: version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      # Fail fast if FIRMWARE_VERSION in code doesn't match the pushed tag
+      - name: Check version matches tag
+        run: |
+          chmod +x check_version.sh
+          ./check_version.sh "${{ steps.version.outputs.VERSION }}"
+
+      - name: Download Doxygen
+        run: |
+          mkdir -p doxygen
+          curl -L https://github.com/doxygen/doxygen/releases/download/Release_1_13_2/doxygen-1.13.2.linux.bin.tar.gz \
+               -o doxygen/doxygen.tar.gz
+
+      - name: Extract Doxygen
+        run: tar -xzf doxygen/doxygen.tar.gz -C doxygen --strip-components=1
+
+      - name: Install Doxygen
+        run: |
+          cd doxygen
+          sudo make
+          sudo make install
+
+      - name: Install Graphviz
+        run: |
+          sudo apt-get update
+          sudo apt-get install graphviz -y
+
+      - name: Generate Doxygen documentation
+        run: doxygen ./Doxyfile
+
+      # Build the zip:  NEVC-MTR1-t01-<version>-with-docs/
+      #                   ├── main/   (firmware source)
+      #                   └── docs/html/   (generated docs)
+      - name: Package release zip
+        run: |
+          BASENAME="NEVC-MTR1-t01-${{ steps.version.outputs.VERSION }}-with-docs"
+          mkdir -p "${BASENAME}/docs"
+          cp -r main       "${BASENAME}/"
+          cp -r docs/html  "${BASENAME}/docs/"
+          zip -r "${BASENAME}.zip" "${BASENAME}"
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "NEVC-MTR1-t01 v${{ steps.version.outputs.VERSION }}"
+          tag_name: ${{ github.ref_name }}
+          generate_release_notes: true
+          files: "NEVC-MTR1-t01-${{ steps.version.outputs.VERSION }}-with-docs.zip"
