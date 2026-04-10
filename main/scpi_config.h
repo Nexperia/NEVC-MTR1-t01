@@ -119,7 +119,7 @@
  * \ref SCPI_IDN_FIRMWARE_VERSION automatically via C string-literal concatenation.
  * Format: "MAJOR.MINOR.PATCH" (e.g. "1.1.0")
  */
-#define FIRMWARE_VERSION "1.1.0"
+#define FIRMWARE_VERSION "1.2.0"
 
 /*! \def SCPI_IDN_FIRMWARE_VERSION
  * \brief Firmware version identification string for the `*IDN?` command.
