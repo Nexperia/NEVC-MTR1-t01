@@ -192,6 +192,12 @@ static void ScpiCoreIdnQ(SCPI_C commands, SCPI_P parameters, Stream &interface)
     interface.print((unsigned long)WAIT_FOR_BOARD, HEX);
     interface.print('-');
     interface.print((unsigned long)REMOTE_DEBUG_MODE, HEX);
+    interface.print('-');
+    interface.print((unsigned long)PID_MAX_I_TERM, HEX);
+    interface.print('-');
+    interface.print((unsigned long)PID_OUTPUT_MAX, HEX);
+    interface.print('-');
+    interface.print((unsigned long)VBUS_MIN_THRESHOLD, HEX);
     interface.print(F(","));
     interface.println(F(SCPI_IDN_FIRMWARE_VERSION));
 }

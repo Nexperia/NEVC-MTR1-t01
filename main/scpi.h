@@ -284,10 +284,13 @@ void ScpiInput(Stream &interface);
      | 23    | `VBUS_RBOTTOM`                  | VBUS divider bottom resistor (Ω)            |
      | 24    | `WAIT_FOR_BOARD`                | Wait for inverter board enable (0/1)        |
      | 25    | `REMOTE_DEBUG_MODE`             | Remote debug mode enable (0/1)              |
+     | 26    | `PID_MAX_I_TERM`                | PID integrator anti-windup limit            |
+     | 27    | `PID_OUTPUT_MAX`                | PID output ceiling (closed loop)            |
+     | 28    | `VBUS_MIN_THRESHOLD`            | Minimum VBUS ADC count for motor operation  |
 
      Example response:
      ```
-     NEXPERIA,NEVB-MTR1-xx,8-4E20-15E-0-C8-1770-1-14-9C4-32-FA0-133-19A-1-0-C8-1-190-64-A-1-0-186A0-1838-1-0,NEVC-MTR1-t01-1.2.1
+     NEXPERIA,NEVB-MTR1-xx,8-4E20-15E-0-C8-1770-1-14-9C4-32-FA0-133-19A-1-0-C8-1-190-64-A-1-0-186A0-1838-1-0-186A0-C8-60,NEVC-MTR1-t01-1.2.1
      ```
 
      \subsection scpi_commands_required Required SCPI Commands

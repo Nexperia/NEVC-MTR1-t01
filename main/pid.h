@@ -78,19 +78,24 @@ typedef struct pidData
 
 /*! \brief Maximum value of the I-term.
 
-    This limits the maximum positive or negative value of the I-term. Changing
-    this value leads to a different integral anti-windup limit. Do not increase
-    this value from its default, as it is already at the limit of the underlying
-    data types.
+    This limits the maximum positive or negative value of the I-term, providing
+    integral anti-windup. Prefer setting \ref PID_MAX_I_TERM in \ref config.h
+    to override this value. The fallback here is the maximum safe value given
+    the underlying 32-bit data types.
 */
+#ifndef MAX_I_TERM
 #define MAX_I_TERM (MAX_LONG - (2 * (int32_t)MAX_INT))
+#endif
 
 // Boolean values
 //! FALSE constant.
+#ifndef FALSE
 #define FALSE 0
-
+#endif
 //! TRUE constant.
+#ifndef TRUE
 #define TRUE (!FALSE)
+#endif
 
 // Function prototypes
 void PIDInit(int16_t p_factor, int16_t i_factor, int16_t d_factor, pidData_t *pid);
