@@ -413,7 +413,7 @@ static void ConfigureMotorSpeed(SCPI_C commands, SCPI_P parameters, Stream &inte
         scpiParser.last_error = ErrorCode::MissingOrInvalidParameter;
         return;
     }
-    speedInput = ((param * SPEED_CONTROLLER_MAX_INPUT * MOTOR_POLES) >> 3) / ((uint32_t)SPEED_CONTROLLER_MAX_SPEED * 15);
+    speedInput = ((uint32_t)(param * SPEED_CONTROLLER_MAX_INPUT * MOTOR_POLES) >> 3) / ((uint32_t)SPEED_CONTROLLER_MAX_SPEED * 15);
     scpiParser.last_error = ErrorCode::NoError;
 }
 #endif

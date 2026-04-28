@@ -566,6 +566,27 @@
 #define PID_K_D 0
 
 /*!
+   \brief Maximum PID Controller Output (Only for Closed Loop)
+
+   This macro sets the ceiling on the value returned by the PID controller
+   before it is written to \ref speedOutput. Values above this limit are
+   clamped to this value. The range is 0–255 because \ref speedOutput is an
+   8-bit quantity.
+
+   Reducing this value limits the maximum duty cycle the closed-loop
+   controller can command, which can help prevent excessive output when VBUS
+   is not yet at its nominal level.
+
+   \note This parameter is applicable when \ref SPEED_CONTROL_METHOD is set to
+   \ref SPEED_CONTROL_CLOSED_LOOP.
+
+   \todo Set to the maximum desired PID output (0–255).
+
+   \see SPEED_CONTROL_METHOD, PID_K_P, PID_K_I, PID_K_D_ENABLE, PID_K_D
+*/
+#define PID_OUTPUT_MAX 200
+
+/*!
    \brief Top resistor value in the VBUS voltage potential divider.
 
    This macro defines the value of the top resistor (RTOP) in the potential
@@ -604,6 +625,43 @@
    \see VBUS_RTOP, vbusVref
 */
 #define VBUS_RBOTTOM 6200
+
+/*!
+   \brief Minimum VBUS Threshold for Motor Operation (Register Value)
+
+   This macro specifies the minimum raw ADC reading of \ref vbusVref that must
+   be present before the speed controller is allowed to run. If the measured
+   VBUS is below this threshold the speed controller resets the PID integrator
+   and holds \ref speedOutput at zero, preventing integrator wind-up and
+   unintended drive output when the motor power supply is absent.
+
+   The range is 0–1023.
+
+   This value is not scaled and represents the raw ADC register value. To
+   obtain the register value from the desired minimum VBUS voltage in volts,
+   use the formula:
+
+   \f[ \text{Register Value} = \frac{\text{VOLTAGE} \times
+      \text{VBUS_RBOTTOM}}{0.004888 \times
+      (\text{VBUS_RTOP} + \text{VBUS_RBOTTOM})} \f]
+
+   Where:
+     - VOLTAGE : The minimum VBUS voltage in volts.
+     - 0.004888 : Conversion factor for a 10-bit ADC with a Vref of 5 V.
+     - \ref VBUS_RTOP : Top resistor in the potential divider (Ω).
+     - \ref VBUS_RBOTTOM : Bottom resistor in the potential divider (Ω).
+
+   With the default NEVB-MTR1-C-1 resistor values (RTOP = 100 kΩ,
+   RBOTTOM = 6.2 kΩ) the scale is approximately 0.0837 V per count.
+   The default value of 96 therefore corresponds to approximately 8 V,
+   providing a safe margin above the MCU supply before enabling drive output.
+
+   \todo Calculate and set the register value for your minimum acceptable
+         VBUS voltage.
+
+   \see VBUS_RTOP, VBUS_RBOTTOM, vbusVref
+*/
+#define VBUS_MIN_THRESHOLD 96
 
 /*!
    \brief Wait for inverter board connection before starting execution.
