@@ -697,7 +697,7 @@ static void RemoteUpdate(void)
     If the \ref SPEED_CONTROL_METHOD is set to \ref SPEED_CONTROL_CLOSED_LOOP, a
     PID controller is used to regulate the speed. The speed input is converted
     into an increment set point, and a PID controller computes the output value.
-    The output is limited to a maximum value of 255.
+    The output is limited to a maximum value of \ref PID_OUTPUT_MAX.
 
     If the \ref SPEED_CONTROL_METHOD is not set to \ref
     SPEED_CONTROL_CLOSED_LOOP, a simple speed control mechanism is applied. If
@@ -706,17 +706,35 @@ static void RemoteUpdate(void)
     change, it limits the change to \ref SPEED_CONTROLLER_MAX_DELTA. If the
     motor is disabled, the speed output is set to 0.
 
+    Before running the regulator, the function checks \ref vbusVref against
+    \ref VBUS_MIN_THRESHOLD. If VBUS is below the threshold (e.g. motor power
+    supply not yet applied), the PID integrator is reset, \ref speedOutput is
+    held at zero, and the function returns immediately. This prevents integrator
+    wind-up and unintended drive output at startup.
+
     \note The behavior of this function depends on the \ref SPEED_CONTROL_METHOD
     configuration.
 
     \see SPEED_CONTROL_METHOD, SPEED_CONTROLLER_TIME_BASE,
         SPEED_CONTROLLER_MAX_DELTA, SPEED_CONTROLLER_MAX_SPEED, PID_K_P,
-        PID_K_I, PID_K_D_ENABLE, PID_K_D
+        PID_K_I, PID_K_D_ENABLE, PID_K_D, PID_OUTPUT_MAX, VBUS_MIN_THRESHOLD
 */
 static void SpeedController(void)
 {
   if (motorFlags.enable == TRUE)
   {
+    // Inhibit drive output if VBUS is not sufficiently powered. This prevents
+    // PID integrator wind-up and unintended PWM when the motor power rail is
+    // absent at startup.
+    if (vbusVref < VBUS_MIN_THRESHOLD)
+    {
+#if (SPEED_CONTROL_METHOD == SPEED_CONTROL_CLOSED_LOOP)
+      PIDResetIntegrator(&pidParameters);
+#endif
+      speedOutput = 0;
+      return;
+    }
+
 #if (SPEED_CONTROL_METHOD == SPEED_CONTROL_CLOSED_LOOP)
     // Calculate an increment set point from the analog speed input.
     int16_t incrementSetpoint = ((int32_t)speedInput * SPEED_CONTROLLER_MAX_SPEED) / SPEED_CONTROLLER_MAX_INPUT;
@@ -726,9 +744,9 @@ static void SpeedController(void)
 
     outputValue = PIDController(incrementSetpoint, (motorConfigs.tim4Freq / (lastCommutationTicks * 3)) >> 1, &pidParameters);
 
-    if (outputValue > 255)
+    if (outputValue > PID_OUTPUT_MAX)
     {
-      outputValue = 255;
+      outputValue = PID_OUTPUT_MAX;
     }
 
     speedOutput = outputValue;
