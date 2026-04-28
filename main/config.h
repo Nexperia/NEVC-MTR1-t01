@@ -584,7 +584,7 @@
 
    \see SPEED_CONTROL_METHOD, PID_K_P, PID_K_I, PID_K_D_ENABLE, PID_K_D
 */
-#define PID_OUTPUT_MAX 255
+#define PID_OUTPUT_MAX 200
 
 /*!
    \brief Top resistor value in the VBUS voltage potential divider.
