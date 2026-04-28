@@ -18,6 +18,8 @@
 
  ******************************************************************************/
 
+// Include motor config (provides MAX_I_TERM via PID_MAX_I_TERM)
+#include "config.h"
 // Include PID header
 #include "pid.h"
 

@@ -566,6 +566,34 @@
 #define PID_K_D 0
 
 /*!
+   \brief Maximum PID Integrator Sum (Anti-Windup Limit)
+
+   This macro sets the maximum absolute value of the accumulated error sum
+   inside the PID integrator. When the sum would exceed this limit it is
+   clamped, preventing integrator wind-up.
+
+   The i-term contribution to the output is approximately:
+   \f[ \text{i-term} \approx \frac{\text{PID\_MAX\_I\_TERM} \times
+      \text{PID\_K\_I}}{1000} \f]
+   so the default of 100000 with the default \ref PID_K_I of 10 limits the
+   integrator's output contribution to ~1000, which is already well above
+   the \ref PID_OUTPUT_MAX ceiling and ensures fast unwind after a
+   disturbance.
+
+   The absolute upper bound is \f$2\,147\,418\,113\f$ (MAX_LONG −
+   2 × MAX_INT) imposed by the underlying 32-bit data types.
+
+   \note This parameter is applicable when \ref SPEED_CONTROL_METHOD is set to
+   \ref SPEED_CONTROL_CLOSED_LOOP.
+
+   \todo Reduce to tighten anti-windup or increase if integral action is
+         too slow to recover after large speed steps.
+
+   \see PID_K_I, PID_OUTPUT_MAX, SPEED_CONTROL_METHOD
+*/
+#define PID_MAX_I_TERM 100000L
+
+/*!
    \brief Maximum PID Controller Output (Only for Closed Loop)
 
    This macro sets the ceiling on the value returned by the PID controller
@@ -1311,6 +1339,16 @@ Divide by frequency to get duration.
 #if ((EMULATE_HALL == TRUE) && (SPEED_CONTROL_METHOD == SPEED_CONTROL_CLOSED_LOOP))
 #error "Invalid combination of EMULATE_HALL and SPEED_CONTROL_METHOD"
 #endif
+
+/*!
+   \brief PID integrator clamp value passed to the PID controller.
+
+   Translates the user-settable \ref PID_MAX_I_TERM into the \c MAX_I_TERM
+   symbol consumed by \ref pid.h. The guard ensures that if \c pid.h is ever
+   compiled without \ref config.h in scope it falls back to its own safe
+   default.
+*/
+#define MAX_I_TERM PID_MAX_I_TERM
 
 /** @} */
 
