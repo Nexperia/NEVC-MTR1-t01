@@ -290,7 +290,7 @@ void ScpiInput(Stream &interface);
 
      Example response:
      ```
-     NEXPERIA,NEVB-MTR1-xx,8-4E20-15E-0-C8-1770-1-14-9C4-32-FA0-133-19A-1-0-C8-1-190-64-A-1-0-186A0-1838-1-0-186A0-C8-60,NEVC-MTR1-t01-1.3.0
+     NEXPERIA,NEVB-MTR1-xx,8-4E20-15E-0-C8-1770-1-14-9C4-32-FA0-133-19A-1-0-C8-1-190-64-A-1-0-186A0-1838-1-0-186A0-C8-60,NEVC-MTR1-t01-1.3.1
      ```
 
      \subsection scpi_commands_required Required SCPI Commands
