@@ -75,23 +75,22 @@ uint16_t PIDController(int16_t setPoint, int16_t processValue, pidData_t *pid_st
     pid_st->p_term = pid_st->P_Factor * error / 1000;
   }
 
-  // Calculate "I" term and limit integral runaway
+  // Calculate "I" term and limit integral runaway.
+  // i_term is always derived from sumError so the clamp is continuous.
   temp = pid_st->sumError + error;
   if (temp > pid_st->maxSumError)
   {
-    pid_st->i_term = MAX_I_TERM;
     pid_st->sumError = pid_st->maxSumError;
   }
   else if (temp < -pid_st->maxSumError)
   {
-    pid_st->i_term = -MAX_I_TERM;
     pid_st->sumError = -pid_st->maxSumError;
   }
   else
   {
     pid_st->sumError = temp;
-    pid_st->i_term = pid_st->I_Factor * pid_st->sumError / 1000;
   }
+  pid_st->i_term = pid_st->I_Factor * pid_st->sumError / 1000;
 
 #if (PID_K_D_ENABLE == TRUE)
   // Calculate "D" term
